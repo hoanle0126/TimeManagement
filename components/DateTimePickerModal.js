@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
+import { 
+  Text, 
+  Button, 
+  IconButton,
+  useTheme,
+} from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -19,6 +24,7 @@ export default function DateTimePickerModal({
   title,
   minimumDate,
 }) {
+  const theme = useTheme();
   const [selectedDate, setSelectedDate] = useState(value || new Date());
   const [currentMonth, setCurrentMonth] = useState(
     value ? new Date(value.getFullYear(), value.getMonth(), 1) : new Date()
@@ -26,18 +32,8 @@ export default function DateTimePickerModal({
 
   const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   const getDaysInMonth = (date) => {
@@ -97,20 +93,17 @@ export default function DateTimePickerModal({
     const today = new Date();
     const minDate = minimumDate || today;
 
-    // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(<View key={`empty-${i}`} style={styles.calendarDay} />);
     }
 
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayDate = new Date(
         currentMonth.getFullYear(),
         currentMonth.getMonth(),
         day
       );
-      const isSelected =
-        isCurrentMonth && day === selectedDay;
+      const isSelected = isCurrentMonth && day === selectedDay;
       const isDisabled = dayDate < minDate && dayDate.toDateString() !== minDate.toDateString();
 
       days.push(
@@ -140,6 +133,154 @@ export default function DateTimePickerModal({
     return days;
   };
 
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      backgroundColor: theme.colors.surfaceVariant,
+      borderRadius: theme.roundness * 1.33,
+      width: Platform.OS === 'web' ? 600 : '90%',
+      maxWidth: 600,
+      padding: 20,
+      ...(Platform.OS === 'web'
+        ? { boxShadow: `0 8px 32px ${theme.colors.shadow}66` }
+        : {
+            shadowColor: theme.colors.shadow,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.4,
+            shadowRadius: 32,
+            elevation: 16,
+          }),
+    },
+    header: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+      textAlign: 'center',
+    },
+    content: {
+      flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+      gap: 20,
+      marginBottom: 20,
+    },
+    calendarSection: {
+      flex: 1,
+    },
+    calendarHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      paddingHorizontal: 8,
+    },
+    monthYear: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+    },
+    daysOfWeek: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 8,
+    },
+    dayOfWeekText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.onSurfaceVariant,
+      width: 40,
+      textAlign: 'center',
+    },
+    calendarGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    calendarDay: {
+      width: '14.28%',
+      aspectRatio: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    calendarDaySelected: {
+      backgroundColor: theme.colors.primary,
+      borderRadius: theme.roundness * 1.67,
+    },
+    calendarDayDisabled: {
+      opacity: 0.3,
+    },
+    calendarDayText: {
+      fontSize: 14,
+      color: theme.colors.onSurface,
+      fontWeight: '500',
+    },
+    calendarDayTextSelected: {
+      color: theme.colors.onPrimary,
+      fontWeight: '600',
+    },
+    calendarDayTextDisabled: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    timeSection: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: 200,
+      maxHeight: 300,
+    },
+    webTimePicker: {
+      flexDirection: 'row',
+      gap: 8,
+      width: '100%',
+      maxWidth: 200,
+      height: 250,
+    },
+    timeColumn: {
+      flex: 1,
+    },
+    timeOption: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginBottom: 4,
+      borderRadius: theme.roundness,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 40,
+      backgroundColor: theme.colors.surface,
+    },
+    timeOptionSelected: {
+      backgroundColor: theme.colors.primary,
+    },
+    timeOptionText: {
+      fontSize: 14,
+      color: theme.colors.onSurface,
+      fontWeight: '500',
+    },
+    timeOptionTextSelected: {
+      color: theme.colors.onPrimary,
+      fontWeight: '600',
+    },
+    timePicker: {
+      width: '100%',
+      height: 200,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+      marginTop: 20,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.outline,
+    },
+  });
+
   return (
     <Modal
       visible={visible}
@@ -150,27 +291,34 @@ export default function DateTimePickerModal({
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
+            <Text variant="titleLarge" style={styles.title}>
+              {title}
+            </Text>
           </View>
 
           <View style={styles.content}>
-            {/* Calendar Section */}
             <View style={styles.calendarSection}>
               <View style={styles.calendarHeader}>
-                <TouchableOpacity onPress={handlePrevMonth}>
-                  <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-                <Text style={styles.monthYear}>
+                <IconButton
+                  icon="chevron-left"
+                  iconColor={theme.colors.onSurface}
+                  size={20}
+                  onPress={handlePrevMonth}
+                />
+                <Text variant="titleMedium" style={styles.monthYear}>
                   {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </Text>
-                <TouchableOpacity onPress={handleNextMonth}>
-                  <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
+                <IconButton
+                  icon="chevron-right"
+                  iconColor={theme.colors.onSurface}
+                  size={20}
+                  onPress={handleNextMonth}
+                />
               </View>
 
               <View style={styles.daysOfWeek}>
                 {daysOfWeek.map((day, index) => (
-                  <Text key={index} style={styles.dayOfWeekText}>
+                  <Text key={index} variant="bodySmall" style={styles.dayOfWeekText}>
                     {day}
                   </Text>
                 ))}
@@ -179,7 +327,6 @@ export default function DateTimePickerModal({
               <View style={styles.calendarGrid}>{renderCalendarDays()}</View>
             </View>
 
-            {/* Time Picker Section */}
             <View style={styles.timeSection}>
               {Platform.OS === 'web' ? (
                 <View style={styles.webTimePicker}>
@@ -296,198 +443,32 @@ export default function DateTimePickerModal({
                   display="default"
                   onChange={handleTimeChange}
                   style={styles.timePicker}
-                  textColor="#FFFFFF"
-                  themeVariant="dark"
+                  textColor={theme.colors.onSurface}
+                  themeVariant={theme.dark ? 'dark' : 'light'}
                 />
               )}
             </View>
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
+            <Button
+              mode="text"
               onPress={onClose}
+              textColor={theme.colors.primary}
             >
-              <Text style={styles.cancelButtonText}>CANCEL</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.confirmButton}
+              CANCEL
+            </Button>
+            <Button
+              mode="contained"
               onPress={handleConfirm}
+              buttonColor={theme.colors.primary}
+              textColor={theme.colors.onPrimary}
             >
-              <Text style={styles.confirmButtonText}>NEXT</Text>
-            </TouchableOpacity>
+              OK
+            </Button>
           </View>
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#2C2C2C',
-    borderRadius: 16,
-    width: Platform.OS === 'web' ? 600 : '90%',
-    maxWidth: 600,
-    padding: 20,
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)' }
-      : {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.4,
-          shadowRadius: 32,
-          elevation: 16,
-        }),
-  },
-  header: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  content: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-    gap: 20,
-    marginBottom: 20,
-  },
-  calendarSection: {
-    flex: 1,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-  monthYear: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  daysOfWeek: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
-  },
-  dayOfWeekText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
-    width: 40,
-    textAlign: 'center',
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  calendarDaySelected: {
-    backgroundColor: '#4A9EFF',
-    borderRadius: 20,
-  },
-  calendarDayDisabled: {
-    opacity: 0.3,
-  },
-  calendarDayText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  calendarDayTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  calendarDayTextDisabled: {
-    color: '#666',
-  },
-  timeSection: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 200,
-    maxHeight: 300,
-  },
-  webTimePicker: {
-    flexDirection: 'row',
-    gap: 8,
-    width: '100%',
-    maxWidth: 200,
-    height: 250,
-  },
-  timeColumn: {
-    flex: 1,
-  },
-  timeOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 4,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 40,
-  },
-  timeOptionSelected: {
-    backgroundColor: '#4A9EFF',
-  },
-  timeOptionText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  timeOptionTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  timePicker: {
-    width: '100%',
-    height: 200,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#404040',
-  },
-  cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4A9EFF',
-    textTransform: 'uppercase',
-  },
-  confirmButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  confirmButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4A9EFF',
-    textTransform: 'uppercase',
-  },
-});
-

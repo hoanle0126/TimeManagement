@@ -1,198 +1,232 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 
 const progressData = [
-  { day: 12, change: 8, color: '#4CAF50' },
-  { day: 13, change: 2, color: '#4CAF50' },
-  { day: 14, change: 12, color: '#FF9800' },
-  { day: 15, change: 5, color: '#4CAF50' },
-  { day: 16, value: 65, change: 8, color: '#FF9800', isCurrent: true },
-  { day: 17, change: 6, color: '#4CAF50' },
-  { day: 18, change: 10, color: '#FF9800' },
+  { day: 12, change: 8, color: 'success' },
+  { day: 13, change: 2, color: 'success' },
+  { day: 14, change: 12, color: 'warning' },
+  { day: 15, change: 5, color: 'success' },
+  { day: 16, value: 65, change: 8, color: 'warning', isCurrent: true },
+  { day: 17, change: 6, color: 'success' },
+  { day: 18, change: 10, color: 'warning' },
 ];
 
 export default function TaskProgressWidget() {
+  const theme = useTheme();
   const { width } = Dimensions.get('window');
   const isTablet = width >= 768;
   const maxHeight = 120;
   const maxValue = 100;
 
+  const getColor = (colorType) => {
+    switch (colorType) {
+      case 'success':
+        return theme.colors.success;
+      case 'warning':
+        return theme.colors.warning;
+      default:
+        return theme.colors.primary;
+    }
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: 16,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.roundness * 1.33,
+      ...(Platform.OS === 'web' 
+        ? { boxShadow: `0 2px 8px ${theme.colors.shadow}1A` }
+        : {
+            shadowColor: theme.colors.shadow,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3,
+          }
+      ),
+    },
+    cardContent: {
+      padding: isTablet ? 20 : 16,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    title: {
+      fontSize: isTablet ? 18 : 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+    },
+    chartContainer: {
+      marginBottom: 16,
+    },
+    chart: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-around',
+      height: 140,
+      paddingBottom: 30,
+    },
+    barContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    barWrapper: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    bar: {
+      width: '60%',
+      minHeight: 8,
+      borderRadius: 4,
+      marginBottom: 4,
+    },
+    barChange: {
+      fontSize: 10,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    currentBarWrapper: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    currentBar: {
+      width: '80%',
+      borderRadius: theme.roundness,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      paddingTop: 8,
+      marginBottom: 4,
+    },
+    currentBarValue: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    currentBarIndicator: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    currentBarChange: {
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    dayLabel: {
+      fontSize: 12,
+      color: theme.colors.onSurfaceVariant,
+      marginTop: 4,
+    },
+    alert: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surfaceVariant,
+      borderRadius: theme.roundness,
+      padding: 16,
+      gap: 12,
+    },
+    alertText: {
+      flex: 1,
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+      fontWeight: '500',
+    },
+  });
+
   return (
-    <View style={[styles.container, isTablet && styles.containerTablet]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="clipboard" size={20} color="#1A1A1A" />
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Task Progress</Text>
-        </View>
-        <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
-      </View>
+    <View style={styles.container}>
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Ionicons name="clipboard" size={20} color={theme.colors.onSurface} />
+              <Text style={styles.title}>Task Progress</Text>
+            </View>
+            <IconButton
+              icon="dots-horizontal"
+              iconColor={theme.colors.onSurfaceVariant}
+              size={20}
+              onPress={() => {}}
+            />
+          </View>
 
-      <View style={styles.chartContainer}>
-        <View style={styles.chart}>
-          {progressData.map((item, index) => {
-            const height = item.value 
-              ? (item.value / maxValue) * maxHeight 
-              : (item.change / 20) * maxHeight;
-            
-            return (
-              <View key={index} style={styles.barContainer}>
-                {item.isCurrent ? (
-                  <View style={styles.currentBarWrapper}>
-                    <View style={[styles.currentBar, { height: height + 20 }]}>
-                      <Text style={styles.currentBarValue}>{item.value}%</Text>
-                      <View style={styles.currentBarIndicator}>
-                        <Text style={styles.currentBarChange}>+{item.change}%</Text>
+          <View style={styles.chartContainer}>
+            <View style={styles.chart}>
+              {progressData.map((item, index) => {
+                const height = item.value 
+                  ? (item.value / maxValue) * maxHeight 
+                  : (item.change / 20) * maxHeight;
+                const color = getColor(item.color);
+                
+                return (
+                  <View key={index} style={styles.barContainer}>
+                    {item.isCurrent ? (
+                      <View style={styles.currentBarWrapper}>
+                        <View style={[
+                          styles.currentBar, 
+                          { 
+                            height: height + 20,
+                            backgroundColor: theme.colors.inverseSurface,
+                          }
+                        ]}>
+                          <Text style={[
+                            styles.currentBarValue,
+                            { color: theme.colors.inverseOnSurface },
+                          ]}>
+                            {item.value}%
+                          </Text>
+                          <View style={[
+                            styles.currentBarIndicator,
+                            { backgroundColor: theme.colors.warning },
+                          ]}>
+                            <Text style={[
+                              styles.currentBarChange,
+                              { color: theme.colors.onWarning || '#FFFFFF' },
+                            ]}>
+                              +{item.change}%
+                            </Text>
+                          </View>
+                        </View>
                       </View>
-                    </View>
+                    ) : (
+                      <View style={styles.barWrapper}>
+                        <View style={[styles.bar, { height, backgroundColor: color }]} />
+                        <Text style={[styles.barChange, { color }]}>
+                          +{item.change}%
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.dayLabel}>{item.day}</Text>
                   </View>
-                ) : (
-                  <View style={styles.barWrapper}>
-                    <View style={[styles.bar, { height, backgroundColor: item.color }]} />
-                    <Text style={[styles.barChange, { color: item.color }]}>
-                      +{item.change}%
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.dayLabel}>{item.day}</Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
+                );
+              })}
+            </View>
+          </View>
 
-      <View style={styles.alert}>
-        <Ionicons name="thumbs-up" size={20} color="#4CAF50" />
-        <Text style={styles.alertText}>You have a good progress.</Text>
-        <Ionicons name="close" size={20} color="#666" />
-      </View>
+          <View style={styles.alert}>
+            <Ionicons name="thumbs-up" size={20} color={theme.colors.success} />
+            <Text style={styles.alertText}>You have a good progress.</Text>
+            <IconButton
+              icon="close"
+              iconColor={theme.colors.onSurfaceVariant}
+              size={20}
+              onPress={() => {}}
+            />
+          </View>
+        </Card.Content>
+      </Card>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...(Platform.OS === 'web' 
-      ? { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }
-      : {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 3,
-        }
-    ),
-  },
-  containerTablet: {
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  titleTablet: {
-    fontSize: 18,
-  },
-  chartContainer: {
-    marginBottom: 16,
-  },
-  chart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: 140,
-    paddingBottom: 30,
-  },
-  barContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  barWrapper: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  bar: {
-    width: '60%',
-    minHeight: 8,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  barChange: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  currentBarWrapper: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  currentBar: {
-    width: '80%',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 8,
-    marginBottom: 4,
-  },
-  currentBarValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  currentBarIndicator: {
-    backgroundColor: '#FF9800',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  currentBarChange: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  dayLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  alertText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-});
-

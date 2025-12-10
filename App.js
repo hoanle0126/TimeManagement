@@ -2,13 +2,15 @@
 import './axios-fix';
 
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { Provider as PaperProvider } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 import DashboardScreen from './screens/DashboardScreen';
 import MessagesScreen from './screens/MessagesScreen';
@@ -24,6 +26,8 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function MainTabs() {
+  const { theme } = useTheme();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route, navigation }) => ({
@@ -44,32 +48,33 @@ function MainTabs() {
                 width: 56,
                 height: 56,
                 borderRadius: 28,
-                backgroundColor: '#FF9800',
+                backgroundColor: theme.colors.secondary,
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: 20,
-                shadowColor: '#000',
+                shadowColor: theme.colors.shadow,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
                 elevation: 8,
               }}>
-                <Ionicons name="add" size={32} color="#FFFFFF" />
+                <Ionicons name="add" size={32} color={theme.colors.onSecondary} />
               </View>
             );
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         headerShown: false,
         tabBarStyle: {
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
           borderTopWidth: 1,
-          borderTopColor: '#E0E0E0',
+          borderTopColor: theme.colors.outline,
+          backgroundColor: theme.colors.surface,
         },
       })}
     >
@@ -105,12 +110,12 @@ function AuthStack() {
 
 function AppContent() {
   const { authState, isLoading } = useAuth();
+  const { theme } = useTheme();
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={styles.loadingText}>Đang tải...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -133,10 +138,22 @@ function AppContent() {
   );
 }
 
-export default function App() {
+function AppWithProviders() {
+  const { theme } = useTheme();
+  
   return (
-    <NavigationContainer>
-      <StatusBar style="auto" />
+    <NavigationContainer theme={{
+      dark: theme.dark,
+      colors: {
+        primary: theme.colors.primary,
+        background: theme.colors.background,
+        card: theme.colors.surface,
+        text: theme.colors.onSurface,
+        border: theme.colors.outline,
+        notification: theme.colors.error,
+      },
+    }}>
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <AuthProvider>
         <AppContent />
       </AuthProvider>
@@ -144,17 +161,21 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
+export default function App() {
+  return (
+    <ThemeProvider>
+      <PaperProvider>
+        <AppWithProviders />
+      </PaperProvider>
+    </ThemeProvider>
+  );
+}
+
+const styles = {
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-});
+};
 

@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { Card, Text, IconButton, ProgressBar, Avatar, useTheme, Chip } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 
 const getIsTablet = () => {
@@ -34,198 +28,208 @@ const tasks = [
 ];
 
 export default function TodayTasksWidget({ navigation }) {
+  const theme = useTheme();
   const [alertVisible, setAlertVisible] = useState(true);
   const isTablet = getIsTablet();
 
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: 16,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.roundness * 1.33,
+      ...(Platform.OS === 'web' 
+        ? { boxShadow: `0 2px 8px ${theme.colors.shadow}1A` }
+        : {
+            shadowColor: theme.colors.shadow,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3,
+          }
+      ),
+    },
+    cardContent: {
+      padding: isTablet ? 20 : 16,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    title: {
+      fontSize: isTablet ? 18 : 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+    },
+    seeAll: {
+      fontSize: 14,
+      color: theme.colors.primary,
+      fontWeight: '500',
+    },
+    tasksList: {
+      gap: 12,
+    },
+    taskCard: {
+      padding: 16,
+      backgroundColor: theme.colors.surfaceVariant,
+      borderRadius: theme.roundness,
+      marginBottom: 8,
+    },
+    taskTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+      marginBottom: 8,
+    },
+    taskDescription: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+      marginBottom: 12,
+      lineHeight: 20,
+    },
+    taskFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    membersContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: -8,
+    },
+    memberAvatar: {
+      borderWidth: 2,
+      borderColor: theme.colors.surface,
+    },
+    memberAvatarOverlap: {
+      marginLeft: -8,
+    },
+    moreMembers: {
+      marginLeft: 4,
+      fontSize: 12,
+      color: theme.colors.onSurfaceVariant,
+      fontWeight: '600',
+    },
+    progressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+      marginLeft: 12,
+    },
+    progressBar: {
+      flex: 1,
+      height: 6,
+      borderRadius: 3,
+    },
+    progressText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      minWidth: 40,
+    },
+    alert: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.inverseSurface,
+      borderRadius: theme.roundness,
+      padding: 16,
+      marginTop: 12,
+      gap: 12,
+    },
+    alertText: {
+      flex: 1,
+      fontSize: 14,
+      color: theme.colors.inverseOnSurface,
+      fontWeight: '500',
+    },
+  });
+
   return (
-    <View style={[styles.container, isTablet && styles.containerTablet]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="clipboard" size={20} color="#1A1A1A" />
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Today Tasks</Text>
-        </View>
-        <TouchableOpacity>
-          <Text style={styles.seeAll}>See All &gt;</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tasksList}>
-        {tasks.map((task) => (
-          <TouchableOpacity
-            key={task.id}
-            style={styles.taskCard}
-            onPress={() => navigation.navigate('TaskDetail', { taskName: task.title })}
-          >
-            <Text style={styles.taskTitle}>{task.title}</Text>
-            <Text style={styles.taskDescription} numberOfLines={2}>
-              {task.description}
-            </Text>
-            
-            <View style={styles.taskFooter}>
-              <View style={styles.membersContainer}>
-                {[1, 2, 3, 4].slice(0, task.members).map((i) => (
-                  <View key={i} style={[styles.memberAvatar, i > 0 && styles.memberAvatarOverlap]} />
-                ))}
-                <Text style={styles.moreMembers}>+{task.moreMembers}</Text>
-              </View>
-              
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${task.progress}%` }]} />
-                </View>
-                <Text style={styles.progressText}>{task.progress}%</Text>
-              </View>
+    <View style={styles.container}>
+      <Card style={styles.card} onPress={() => {}}>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Ionicons name="clipboard" size={20} color={theme.colors.onSurface} />
+              <Text style={styles.title}>Today Tasks</Text>
             </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+            <Text style={styles.seeAll} onPress={() => {}}>See All &gt;</Text>
+          </View>
 
-      {alertVisible && (
-        <View style={styles.alert}>
-          <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
-          <Text style={styles.alertText}>
-            You have 5 tasks today. Keep it up! 👍
-          </Text>
-          <TouchableOpacity onPress={() => setAlertVisible(false)}>
-            <Ionicons name="close" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      )}
+          <View style={styles.tasksList}>
+            {tasks.map((task) => (
+              <Card
+                key={task.id}
+                style={styles.taskCard}
+                onPress={() => navigation?.navigate('TaskDetail', { taskName: task.title })}
+                mode="outlined"
+                outlineColor={theme.colors.outline}
+              >
+                <Card.Content>
+                  <Text variant="titleMedium" style={styles.taskTitle}>
+                    {task.title}
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.taskDescription} numberOfLines={2}>
+                    {task.description}
+                  </Text>
+                  
+                  <View style={styles.taskFooter}>
+                    <View style={styles.membersContainer}>
+                      {[1, 2, 3, 4].slice(0, task.members).map((i) => (
+                        <Avatar.Text
+                          key={i}
+                          size={28}
+                          label={String(i)}
+                          style={[
+                            styles.memberAvatar,
+                            i > 0 && styles.memberAvatarOverlap,
+                            { backgroundColor: theme.colors.surfaceVariant },
+                          ]}
+                          labelStyle={{ fontSize: 12, color: theme.colors.onSurfaceVariant }}
+                        />
+                      ))}
+                      <Text style={styles.moreMembers}>+{task.moreMembers}</Text>
+                    </View>
+                    
+                    <View style={styles.progressContainer}>
+                      <ProgressBar
+                        progress={task.progress / 100}
+                        color={theme.colors.primary}
+                        style={styles.progressBar}
+                      />
+                      <Text style={styles.progressText}>{task.progress}%</Text>
+                    </View>
+                  </View>
+                </Card.Content>
+              </Card>
+            ))}
+          </View>
+
+          {alertVisible && (
+            <View style={styles.alert}>
+              <Ionicons name="chatbubble" size={20} color={theme.colors.inverseOnSurface} />
+              <Text style={styles.alertText}>
+                You have 5 tasks today. Keep it up! 👍
+              </Text>
+              <IconButton
+                icon="close"
+                iconColor={theme.colors.inverseOnSurface}
+                size={20}
+                onPress={() => setAlertVisible(false)}
+              />
+            </View>
+          )}
+        </Card.Content>
+      </Card>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...(Platform.OS === 'web' 
-      ? { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }
-      : {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 3,
-        }
-    ),
-  },
-  containerTablet: {
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  seeAll: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-  tasksList: {
-    gap: 12,
-  },
-  taskCard: {
-    padding: 16,
-    backgroundColor: '#F9F9F9',
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  taskDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  taskFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  membersContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: -8,
-  },
-  memberAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E0E0E0',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  memberAvatarOverlap: {
-    marginLeft: -8,
-  },
-  moreMembers: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '600',
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    marginLeft: 12,
-  },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4CAF50',
-    minWidth: 40,
-  },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
-    gap: 12,
-  },
-  alertText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  titleTablet: {
-    fontSize: 18,
-  },
-});
-

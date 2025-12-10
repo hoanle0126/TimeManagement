@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { Card, Text, IconButton, Chip, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 
 const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -15,29 +9,29 @@ const months = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-// Sample data for February
 const calendarData = {
-  2: 'green',
-  3: 'green',
-  5: 'green',
-  6: 'green',
-  8: 'green',
-  10: 'black',
-  14: 'green',
-  16: 'orange',
-  20: 'green',
-  21: 'green',
-  23: 'green',
-  24: 'green',
-  25: 'black',
-  28: 'green',
-  29: 'green',
+  2: 'success',
+  3: 'success',
+  5: 'success',
+  6: 'success',
+  8: 'success',
+  10: 'primary',
+  14: 'success',
+  16: 'warning',
+  20: 'success',
+  21: 'success',
+  23: 'success',
+  24: 'success',
+  25: 'primary',
+  28: 'success',
+  29: 'success',
 };
 
 export default function CalendarWidget() {
+  const theme = useTheme();
   const { width } = Dimensions.get('window');
   const isTablet = width >= 768;
-  const [currentMonth] = useState(1); // February (0-indexed)
+  const [currentMonth] = useState(1);
   const [currentYear] = useState(2024);
 
   const getDaysInMonth = (month, year) => {
@@ -48,6 +42,19 @@ export default function CalendarWidget() {
     return new Date(year, month, 1).getDay();
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'success':
+        return theme.colors.success;
+      case 'warning':
+        return theme.colors.warning;
+      case 'primary':
+        return theme.colors.primary;
+      default:
+        return 'transparent';
+    }
+  };
+
   const daysInMonth = getDaysInMonth(currentMonth, currentYear);
   const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
   const today = new Date().getDate();
@@ -55,182 +62,160 @@ export default function CalendarWidget() {
   const renderCalendarDays = () => {
     const days = [];
     
-    // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(<View key={`empty-${i}`} style={styles.dayCell} />);
     }
 
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const status = calendarData[day];
       const isToday = day === today;
+      const statusColor = status ? getStatusColor(status) : null;
       
       days.push(
-        <TouchableOpacity
+        <View
           key={day}
           style={[
             styles.dayCell,
-            status && styles[`dayCell${status.charAt(0).toUpperCase() + status.slice(1)}`],
-            isToday && styles.dayCellToday,
+            statusColor && {
+              backgroundColor: statusColor,
+              borderRadius: theme.roundness * 1.33,
+            },
+            isToday && !statusColor && {
+              borderWidth: 2,
+              borderColor: theme.colors.primary,
+              borderRadius: theme.roundness * 1.33,
+            },
           ]}
         >
           <Text
             style={[
               styles.dayText,
-              status && styles[`dayText${status.charAt(0).toUpperCase() + status.slice(1)}`],
-              isToday && styles.dayTextToday,
+              statusColor && { color: theme.colors.onPrimary },
+              isToday && !statusColor && { 
+                color: theme.colors.primary,
+                fontWeight: 'bold',
+              },
             ]}
           >
             {day}
           </Text>
-        </TouchableOpacity>
+        </View>
       );
     }
 
     return days;
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: 16,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.roundness * 1.33,
+      ...(Platform.OS === 'web' 
+        ? { boxShadow: `0 2px 8px ${theme.colors.shadow}1A` }
+        : {
+            shadowColor: theme.colors.shadow,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3,
+          }
+      ),
+    },
+    cardContent: {
+      padding: isTablet ? 20 : 16,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    title: {
+      fontSize: isTablet ? 18 : 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+    },
+    monthSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    monthText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+    },
+    calendar: {
+      marginTop: 8,
+    },
+    daysOfWeek: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 8,
+    },
+    dayOfWeekText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.onSurfaceVariant,
+      width: 32,
+      textAlign: 'center',
+    },
+    calendarGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    dayCell: {
+      width: '14.28%',
+      aspectRatio: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    dayText: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+      fontWeight: '500',
+    },
+  });
+
   return (
-    <View style={[styles.container, isTablet && styles.containerTablet]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="calendar" size={20} color="#1A1A1A" />
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Calendar</Text>
-        </View>
-        <View style={styles.monthSelector}>
-          <Text style={styles.monthText}>{months[currentMonth]}</Text>
-          <Ionicons name="chevron-down" size={16} color="#666" />
-        </View>
-      </View>
+    <View style={styles.container}>
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Ionicons name="calendar" size={20} color={theme.colors.onSurface} />
+              <Text style={styles.title}>Calendar</Text>
+            </View>
+            <View style={styles.monthSelector}>
+              <Text style={styles.monthText}>{months[currentMonth]}</Text>
+              <Ionicons name="chevron-down" size={16} color={theme.colors.onSurfaceVariant} />
+            </View>
+          </View>
 
-      <View style={styles.calendar}>
-        <View style={styles.daysOfWeek}>
-          {daysOfWeek.map((day, index) => (
-            <Text key={index} style={styles.dayOfWeekText}>
-              {day}
-            </Text>
-          ))}
-        </View>
+          <View style={styles.calendar}>
+            <View style={styles.daysOfWeek}>
+              {daysOfWeek.map((day, index) => (
+                <Text key={index} style={styles.dayOfWeekText}>
+                  {day}
+                </Text>
+              ))}
+            </View>
 
-        <View style={styles.calendarGrid}>
-          {renderCalendarDays()}
-        </View>
-      </View>
+            <View style={styles.calendarGrid}>
+              {renderCalendarDays()}
+            </View>
+          </View>
+        </Card.Content>
+      </Card>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...(Platform.OS === 'web' 
-      ? { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }
-      : {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 3,
-        }
-    ),
-  },
-  containerTablet: {
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  titleTablet: {
-    fontSize: 18,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  monthText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  calendar: {
-    marginTop: 8,
-  },
-  daysOfWeek: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
-  },
-  dayOfWeekText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
-    width: 32,
-    textAlign: 'center',
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: '14.28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  dayText: {
-    fontSize: 14,
-    color: '#999',
-    fontWeight: '500',
-  },
-  dayCellGreen: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 16,
-  },
-  dayTextGreen: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  dayCellBlack: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-  },
-  dayTextBlack: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  dayCellOrange: {
-    backgroundColor: '#FF9800',
-    borderRadius: 16,
-  },
-  dayTextOrange: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  dayCellToday: {
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-  dayTextToday: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
-});
-

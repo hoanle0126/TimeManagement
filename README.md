@@ -1,13 +1,14 @@
-# TaskMaster - Ứng dụng Quản lý Công việc
+# FLOW - Ứng dụng Quản lý Công việc
 
 <div align="center">
 
-![TaskMaster](assets/favicon.png)
+![FLOW - Master Your Moments](assets/favicon.png)
 
-**Ứng dụng quản lý công việc đa nền tảng với React Native và Laravel**
+**FLOW - Ứng dụng quản lý công việc đa nền tảng với React Native Paper và Laravel**
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.72.6-61DAFB?logo=react)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-49.0.0-000020?logo=expo)](https://expo.dev/)
+[![React Native Paper](https://img.shields.io/badge/React%20Native%20Paper-5.x-6200EE?logo=material-design)](https://callstack.github.io/react-native-paper/)
 [![Laravel](https://img.shields.io/badge/Laravel-10.50-FF2D20?logo=laravel)](https://laravel.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-5.7+-4479A1?logo=mysql)](https://www.mysql.com/)
 
@@ -24,6 +25,7 @@
 - [Cài đặt](#-cài-đặt)
 - [Cấu hình](#-cấu-hình)
 - [Chạy ứng dụng](#-chạy-ứng-dụng)
+- [Theme System](#-theme-system)
 - [Cấu trúc project](#-cấu-trúc-project)
 - [API Endpoints](#-api-endpoints)
 - [Tác giả](#-tác-giả)
@@ -33,11 +35,13 @@
 
 ## 🎯 Giới thiệu
 
-TaskMaster là ứng dụng quản lý công việc đa nền tảng được xây dựng với React Native (Expo) cho frontend và Laravel cho backend. Ứng dụng cho phép người dùng quản lý công việc, theo dõi tiến độ, và tổ chức công việc một cách hiệu quả.
+FLOW là ứng dụng quản lý công việc đa nền tảng được xây dựng với React Native (Expo) và React Native Paper cho frontend, Laravel cho backend. Ứng dụng cho phép người dùng quản lý công việc, theo dõi tiến độ, và tổ chức công việc một cách hiệu quả với giao diện Material Design hiện đại.
 
 ### Đặc điểm nổi bật
 
 - ✅ **Đa nền tảng**: Chạy trên iOS, Android và Web
+- ✅ **Material Design**: Sử dụng React Native Paper với Material Design 3
+- ✅ **Theme System**: Hỗ trợ Light/Dark theme với khả năng tùy biến hoàn toàn
 - ✅ **Responsive Design**: Tự động điều chỉnh giao diện theo kích thước màn hình
 - ✅ **Xác thực người dùng**: Đăng ký, đăng nhập, đăng xuất với Laravel Sanctum
 - ✅ **Quản lý công việc**: Tạo, chỉnh sửa, xóa và theo dõi công việc
@@ -56,6 +60,8 @@ TaskMaster là ứng dụng quản lý công việc đa nền tảng được x�
 - 💬 **Tin nhắn**: Gửi và nhận tin nhắn
 - 👤 **Quản lý người dùng**: Đăng ký, đăng nhập, đăng xuất
 - 🎨 **Responsive**: Tự động điều chỉnh cho mobile, tablet, desktop
+- 🌓 **Theme System**: Hỗ trợ Light/Dark theme với khả năng tùy biến
+- 🎨 **Material Design**: Giao diện Material Design 3 với React Native Paper
 
 ### Backend (Laravel)
 
@@ -73,10 +79,12 @@ TaskMaster là ứng dụng quản lý công việc đa nền tảng được x�
 
 - **React Native** 0.72.6 - Framework đa nền tảng
 - **Expo** ~49.0.0 - Development platform
+- **React Native Paper** 5.x - Material Design component library
 - **React Navigation** - Điều hướng trong app
 - **Axios** - HTTP client cho API calls
 - **AsyncStorage** - Lưu trữ local (token, user data)
 - **DateTimePicker** - Chọn ngày/giờ
+- **React Native Vector Icons** - Icon library
 
 ### Backend
 
@@ -220,12 +228,91 @@ Server sẽ chạy tại: **http://localhost:8000**
 
 ---
 
+## 🎨 Theme System
+
+FLOW sử dụng React Native Paper với hệ thống theme tùy biến hoàn toàn. Tất cả components và screens đều sử dụng theme colors thay vì hardcode values.
+
+### Cấu trúc Theme
+
+Theme được định nghĩa trong `contexts/ThemeContext.js` với các tính năng:
+
+- **Light Theme**: Theme sáng mặc định
+- **Dark Theme**: Theme tối (tự động theo system preference)
+- **Custom Colors**: Primary, Secondary, Success, Warning, Error, Info
+- **Custom Fonts**: Typography system với Material Design 3
+- **Roundness**: Border radius tùy biến
+
+### Sử dụng Theme
+
+```javascript
+import { useTheme } from 'react-native-paper';
+
+function MyComponent() {
+  const theme = useTheme();
+  
+  return (
+    <View style={{ backgroundColor: theme.colors.primary }}>
+      <Text style={{ color: theme.colors.onPrimary }}>
+        Hello World
+      </Text>
+    </View>
+  );
+}
+```
+
+### Tùy biến Theme
+
+Để tùy biến theme, chỉnh sửa file `contexts/ThemeContext.js`:
+
+```javascript
+const lightColors = {
+  primary: '#4CAF50',      // Màu chính
+  secondary: '#FF9800',    // Màu phụ
+  success: '#4CAF50',      // Màu thành công
+  warning: '#FF9800',      // Màu cảnh báo
+  error: '#FF3B30',        // Màu lỗi
+  // ... các màu khác
+};
+```
+
+### Toggle Theme
+
+Theme tự động chuyển đổi giữa Light và Dark dựa trên system preference. Bạn có thể thêm nút toggle theme trong settings:
+
+```javascript
+import { useTheme } from '../contexts/ThemeContext';
+
+function SettingsScreen() {
+  const { toggleTheme, isDark } = useTheme();
+  
+  return (
+    <Button onPress={toggleTheme}>
+      {isDark ? 'Light Mode' : 'Dark Mode'}
+    </Button>
+  );
+}
+```
+
+### Components sử dụng Theme
+
+Tất cả components đã được refactor để sử dụng theme:
+- ✅ Header
+- ✅ UserMenuPopup
+- ✅ TodayTasksWidget
+- ✅ TaskProgressWidget
+- ✅ CalendarWidget
+- ✅ TaskTimelineWidget
+- ✅ DateTimePickerModal
+- ✅ Tất cả Screens
+
+---
+
 ## 📁 Cấu trúc project
 
 ```
 TaskManagement/
 ├── assets/                 # Hình ảnh, icons, favicon
-├── components/             # React Native components
+├── components/             # React Native Paper components
 │   ├── CalendarWidget.js
 │   ├── DateTimePickerModal.js
 │   ├── Header.js
@@ -233,17 +320,19 @@ TaskManagement/
 │   ├── TaskTimelineWidget.js
 │   ├── TodayTasksWidget.js
 │   └── UserMenuPopup.js
-├── contexts/               # React Context (AuthContext)
-│   └── AuthContext.js
+├── contexts/               # React Context
+│   ├── AuthContext.js     # Authentication context
+│   └── ThemeContext.js     # Theme context với React Native Paper
 ├── screens/                # Các màn hình của app
 │   ├── DashboardScreen.js
 │   ├── CreateTaskScreen.js
 │   ├── LoginScreen.js
 │   ├── RegisterScreen.js
-│   └── ...
-├── utils/                  # Utility functions
-│   ├── responsive.js
-│   └── shadow.js
+│   ├── CalendarScreen.js
+│   ├── MessagesScreen.js
+│   ├── FriendsScreen.js
+│   ├── MyTasksScreen.js
+│   └── TaskDetailScreen.js
 ├── backend/                # Laravel backend
 │   ├── app/
 │   │   ├── Http/
@@ -259,7 +348,7 @@ TaskManagement/
 │   ├── routes/
 │   │   └── api.php
 │   └── ...
-├── App.js                  # Entry point
+├── App.js                  # Entry point với ThemeProvider
 ├── config.js               # App configuration
 ├── metro.config.js         # Metro bundler config
 ├── babel.config.js         # Babel config
@@ -352,12 +441,20 @@ npm start -- --clear
 
 Backend đã được cấu hình CORS để cho phép requests từ frontend. Nếu vẫn gặp lỗi, kiểm tra file `backend/config/cors.php`.
 
+### Lỗi Theme không hoạt động
+
+1. Đảm bảo `ThemeProvider` đã được wrap trong `App.js`
+2. Kiểm tra `PaperProvider` đã được import và sử dụng
+3. Đảm bảo tất cả components sử dụng `useTheme()` hook
+
 ---
 
 ## 📚 Tài liệu tham khảo
 
 - [React Native Documentation](https://reactnative.dev/docs/getting-started)
 - [Expo Documentation](https://docs.expo.dev/)
+- [React Native Paper Documentation](https://callstack.github.io/react-native-paper/)
+- [Material Design 3](https://m3.material.io/)
 - [Laravel Documentation](https://laravel.com/docs)
 - [Laravel Sanctum](https://laravel.com/docs/sanctum)
 
@@ -383,6 +480,8 @@ This project is licensed under the MIT License.
 Cảm ơn các thư viện và framework mã nguồn mở đã giúp xây dựng project này:
 - React Native team
 - Expo team
+- React Native Paper team (Callstack)
+- Material Design team
 - Laravel team
 - Tất cả các contributors của các packages được sử dụng
 

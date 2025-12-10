@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
+import { 
+  Text, 
+  TextInput, 
+  Button, 
+  useTheme,
+  ActivityIndicator,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginScreen({ navigation }) {
+  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +41,75 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 48,
+    },
+    logoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 24,
+      gap: 12,
+    },
+    logoIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.roundness,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    logoText: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.colors.onBackground,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: theme.colors.onBackground,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.colors.onSurfaceVariant,
+    },
+    form: {
+      width: '100%',
+    },
+    inputContainer: {
+      marginBottom: 16,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 24,
+    },
+    footerText: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+    },
+    footerLink: {
+      fontSize: 14,
+      color: theme.colors.primary,
+      fontWeight: '600',
+    },
+  });
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -50,69 +123,73 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <View style={styles.logoIcon}>
-                <Ionicons name="checkmark" size={32} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={32} color={theme.colors.onPrimary} />
               </View>
-              <Text style={styles.logoText}>TaskMaster.</Text>
+              <Text style={styles.logoText}>FLOW</Text>
             </View>
-            <Text style={styles.title}>Chào mừng trở lại!</Text>
-            <Text style={styles.subtitle}>Đăng nhập để tiếp tục</Text>
+            <Text variant="headlineMedium" style={styles.title}>
+              Chào mừng trở lại!
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Đăng nhập để tiếp tục
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              left={<TextInput.Icon icon="email" />}
+              style={styles.inputContainer}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+            />
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Mật khẩu"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color="#999"
+            <TextInput
+              label="Mật khẩu"
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="lock" />}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye' : 'eye-off'}
+                  onPress={() => setShowPassword(!showPassword)}
                 />
-              </TouchableOpacity>
-            </View>
+              }
+              style={styles.inputContainer}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+            />
 
-            <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            <Button
+              mode="contained"
               onPress={handleLogin}
+              loading={loading}
               disabled={loading}
+              buttonColor={theme.colors.primary}
+              textColor={theme.colors.onPrimary}
+              style={{ marginTop: 8, borderRadius: theme.roundness }}
+              contentStyle={{ paddingVertical: 8 }}
             >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.loginButtonText}>Đăng nhập</Text>
-              )}
-            </TouchableOpacity>
+              Đăng nhập
+            </Button>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.footerLink}>Đăng ký ngay</Text>
-              </TouchableOpacity>
+              <Text
+                style={styles.footerLink}
+                onPress={() => navigation.navigate('Register')}
+              >
+                Đăng ký ngay
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -120,107 +197,3 @@ export default function LoginScreen({ navigation }) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    gap: 12,
-  },
-  logoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-  },
-  form: {
-    width: '100%',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1A1A1A',
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  loginButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  loginButtonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  footerLink: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-});
-
-

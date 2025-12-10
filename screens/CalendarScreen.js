@@ -1,13 +1,6 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CalendarWidget from '../components/CalendarWidget';
 import TodayTasksWidget from '../components/TodayTasksWidget';
@@ -17,6 +10,23 @@ const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
 export default function CalendarScreen({ navigation }) {
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: isTablet ? 20 : 16,
+      paddingBottom: 100,
+      gap: 16,
+    },
+  });
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header />
@@ -31,19 +41,3 @@ export default function CalendarScreen({ navigation }) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: isTablet ? 20 : 16,
-    paddingBottom: 100,
-    gap: 16,
-  },
-});
-
