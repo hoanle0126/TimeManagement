@@ -8,8 +8,9 @@ import {
 } from 'react-native';
 import { Text, Avatar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppDispatch } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
+import { fetchTodayTasks } from '../store/slices/tasksSlice';
 import TodayTasksWidget from '../components/TodayTasksWidget';
 import TaskProgressWidget from '../components/TaskProgressWidget';
 import TaskTimelineWidget from '../components/TaskTimelineWidget';
@@ -19,7 +20,13 @@ import Header from '../components/Header';
 export default function DashboardScreen({ navigation }) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const { todayTasks } = useAppSelector((state) => state.tasks);
+  const { user } = useAppSelector((state) => state.auth);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+
+  useEffect(() => {
+    dispatch(fetchTodayTasks());
+  }, [dispatch]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -166,25 +173,8 @@ export default function DashboardScreen({ navigation }) {
                 Start Your Day & Be Productive ✌️
               </Text>
               <View style={styles.teamAvatars}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Avatar.Text
-                    key={i}
-                    size={40}
-                    label={String(i)}
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: theme.colors.surfaceVariant },
-                    ]}
-                    labelStyle={{ 
-                      fontSize: 14, 
-                      color: theme.colors.onSurfaceVariant,
-                    }}
-                  >
-                    <View style={styles.avatarDot} />
-                  </Avatar.Text>
-                ))}
                 <Text variant="bodyMedium" style={styles.moreText}>
-                  10+
+                  Welcome back! {user?.name || 'User'}
                 </Text>
               </View>
             </View>
@@ -198,7 +188,43 @@ export default function DashboardScreen({ navigation }) {
             >
               <View style={styles.widgetColumn}>
                 <TodayTasksWidget navigation={navigation} />
-                <TaskProgressWidget />
+                {/* Hiển thị TaskProgressWidget cho task chi tiết đầu tiên có đủ thông tin */}
+                {(() => {
+                  // Sử dụng mock data nếu USE_MOCK_DATA = true trong TodayTasksWidget
+                  // Hoặc tìm task detailed đầu tiên có start_date từ Redux
+                  const MOCK_TASKS = [
+                    {
+                      id: 1,
+                      title: 'Hoàn thành báo cáo dự án',
+                      description: 'Viết báo cáo tổng kết dự án TaskManagement và chuẩn bị presentation cho buổi meeting sáng mai',
+                      category: 'Công việc',
+                      progress: 65,
+                      priority: 'high',
+                      status: 'in_progress',
+                      start_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                      due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+                      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                      updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                      taskType: 'detailed',
+                      subtasks: [
+                        { id: 1, title: 'Thu thập dữ liệu', completed: true },
+                        { id: 2, title: 'Viết báo cáo', completed: true },
+                        { id: 3, title: 'Chuẩn bị presentation', completed: false },
+                      ],
+                    },
+                  ];
+                  
+                  // Tìm task detailed đầu tiên có start_date
+                  const detailedTask = todayTasks?.find(
+                    task => task.taskType === 'detailed' && task.start_date
+                  ) || MOCK_TASKS.find(
+                    task => task.taskType === 'detailed' && task.start_date
+                  );
+                  
+                  return detailedTask ? (
+                    <TaskProgressWidget task={detailedTask} />
+                  ) : null;
+                })()}
               </View>
 
               {(isTablet || isDesktop) && (

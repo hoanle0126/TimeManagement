@@ -42,4 +42,48 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Friendships where this user is the initiator
+     */
+    public function friendships()
+    {
+        return $this->hasMany(Friendship::class, 'user_id');
+    }
+
+    /**
+     * Friendships where this user is the recipient
+     */
+    public function friendRequests()
+    {
+        return $this->hasMany(Friendship::class, 'friend_id');
+    }
+
+    /**
+     * Get all friends
+     */
+    public function friends()
+    {
+        $sent = $this->friendships()->where('status', 'accepted')->with('friend');
+        $received = $this->friendRequests()->where('status', 'accepted')->with('user');
+        
+        return $sent->get()->map(fn($f) => $f->friend)
+            ->merge($received->get()->map(fn($f) => $f->user));
+    }
+
+    /**
+     * Notifications for this user
+     */
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Unread notifications
+     */
+    public function unreadNotifications()
+    {
+        return $this->hasMany(Notification::class)->where('read', false);
+    }
 }

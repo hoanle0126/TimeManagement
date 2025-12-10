@@ -4,6 +4,10 @@ const { getDefaultConfig } = require('expo/metro-config');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
+// Fast Refresh is enabled by default in Expo
+// Ensure watchFolders includes the project root
+config.watchFolders = [__dirname];
+
 // Fix for axios FormData issue
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
