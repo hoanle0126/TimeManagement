@@ -70,9 +70,10 @@ export default function FriendsScreen() {
   };
   
   const columns = getColumns();
-  const padding = isTablet ? 40 : 32;
+  const contentPadding = isTablet ? 20 : 16;
   const gap = 12;
-  const cardWidth = (width - padding - (gap * (columns - 1))) / columns;
+  // Tính cardWidth: width - (padding trái + padding phải) - (gap giữa các cột)
+  const cardWidth = (width - (contentPadding * 2) - (gap * (columns - 1))) / columns;
 
   const styles = StyleSheet.create({
     container: {
