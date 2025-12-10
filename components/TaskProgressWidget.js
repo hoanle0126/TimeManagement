@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
-import { Card, Text, IconButton, useTheme } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
+import { Card, Text, useTheme } from 'react-native-paper';
+import { SolarIcon } from 'react-native-solar-icons';
+import { createShadow } from '../utils/shadow';
 
 const progressData = [
   { day: 12, change: 8, color: 'success' },
@@ -38,16 +39,6 @@ export default function TaskProgressWidget() {
     card: {
       backgroundColor: theme.colors.surface,
       borderRadius: theme.roundness * 1.33,
-      ...(Platform.OS === 'web' 
-        ? { boxShadow: `0 2px 8px ${theme.colors.shadow}1A` }
-        : {
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 3,
-          }
-      ),
     },
     cardContent: {
       padding: isTablet ? 20 : 16,
@@ -145,21 +136,29 @@ export default function TaskProgressWidget() {
     },
   });
 
+  const cardShadow = createShadow({
+    color: theme.colors.shadow,
+    offsetY: 2,
+    opacity: 0.1,
+    radius: 8,
+    elevation: 3,
+  });
+
   return (
     <View style={styles.container}>
-      <Card style={styles.card}>
+      <Card style={[styles.card, cardShadow]}>
         <Card.Content style={styles.cardContent}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Ionicons name="clipboard" size={20} color={theme.colors.onSurface} />
+              <SolarIcon name="Clipboard" size={20} color={theme.colors.onSurface} type="outline" />
               <Text style={styles.title}>Task Progress</Text>
             </View>
-            <IconButton
-              icon="dots-horizontal"
-              iconColor={theme.colors.onSurfaceVariant}
-              size={20}
+            <TouchableOpacity
               onPress={() => {}}
-            />
+              style={{ padding: 4 }}
+            >
+              <SolarIcon name="MenuDots" size={20} color={theme.colors.onSurfaceVariant} type="outline" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.chartContainer}>
@@ -193,7 +192,7 @@ export default function TaskProgressWidget() {
                           ]}>
                             <Text style={[
                               styles.currentBarChange,
-                              { color: theme.colors.onWarning || '#FFFFFF' },
+                              { color: theme.colors.onWarning || theme.colors.onSurface },
                             ]}>
                               +{item.change}%
                             </Text>
@@ -216,14 +215,14 @@ export default function TaskProgressWidget() {
           </View>
 
           <View style={styles.alert}>
-            <Ionicons name="thumbs-up" size={20} color={theme.colors.success} />
+            <SolarIcon name="Like" size={20} color={theme.colors.success} type="bold" />
             <Text style={styles.alertText}>You have a good progress.</Text>
-            <IconButton
-              icon="close"
-              iconColor={theme.colors.onSurfaceVariant}
-              size={20}
+            <TouchableOpacity
               onPress={() => {}}
-            />
+              style={{ padding: 4 }}
+            >
+              <SolarIcon name="CloseCircle" size={20} color={theme.colors.onSurfaceVariant} type="outline" />
+            </TouchableOpacity>
           </View>
         </Card.Content>
       </Card>

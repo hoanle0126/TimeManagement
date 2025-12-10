@@ -11,15 +11,17 @@ import {
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppSelector } from '../store/hooks';
+import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import UserMenuPopup from './UserMenuPopup';
 
 export default function Header({ onMenuPress }) {
   const navigation = useNavigation();
   const theme = useTheme();
-  const { authState } = useAuth();
-  const isAuthenticated = !!authState?.token;
-  const userName = authState?.user?.name || 'Guest';
+  const { token, user } = useAppSelector((state) => state.auth);
+  const { isDark, toggleTheme } = useCustomTheme();
+  const isAuthenticated = !!token;
+  const userName = user?.name || 'Guest';
   const { width } = Dimensions.get('window');
   const isTablet = width >= 768;
   const [menuVisible, setMenuVisible] = useState(false);
@@ -43,8 +45,12 @@ export default function Header({ onMenuPress }) {
   };
 
   const handleMenuItemPress = (itemId) => {
+    console.log('Header: Menu item pressed:', itemId);
     if (onMenuPress) {
+      console.log('Header: Calling onMenuPress with:', itemId);
       onMenuPress(itemId);
+    } else {
+      console.warn('Header: onMenuPress is not defined');
     }
   };
 
@@ -163,16 +169,18 @@ export default function Header({ onMenuPress }) {
         )}
 
         <View style={styles.rightSection}>
+          {/* Theme toggle button - always visible */}
+          <IconButton
+            icon={isDark ? "weather-sunny" : "weather-night"}
+            iconColor={theme.colors.onSurfaceVariant}
+            size={20}
+            onPress={toggleTheme}
+          />
+          
           {isTablet && (
             <>
               <IconButton
                 icon="filter"
-                iconColor={theme.colors.onSurfaceVariant}
-                size={20}
-                onPress={() => {}}
-              />
-              <IconButton
-                icon="weather-sunny"
                 iconColor={theme.colors.onSurfaceVariant}
                 size={20}
                 onPress={() => {}}
@@ -230,7 +238,7 @@ export default function Header({ onMenuPress }) {
                       style={{ color: theme.colors.onSurfaceVariant }}
                       numberOfLines={1}
                     >
-                      {authState?.user?.email || ''}
+                      {user?.email || ''}
                     </Text>
                   )}
                 </View>

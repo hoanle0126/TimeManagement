@@ -113,10 +113,22 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout');
+      // Gọi API logout từ backend để xóa token trên server
+      console.log('Calling logout API...');
+      console.log('API URL:', API_URL);
+      console.log('Authorization header:', axios.defaults.headers.common['Authorization']);
+      
+      // Gọi API logout - có thể dùng /logout hoặc /auth/logout
+      const response = await axios.post('/logout');
+      console.log('Logout API response:', response.data);
     } catch (error) {
+      // Nếu có lỗi (ví dụ: token đã hết hạn), vẫn tiếp tục xóa token ở client
       console.error('Logout error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
     } finally {
+      // Luôn xóa token ở client và reset state
+      console.log('Clearing token from storage...');
       await AsyncStorage.removeItem('token');
       delete axios.defaults.headers.common['Authorization'];
       setAuthState({
@@ -124,6 +136,7 @@ export const AuthProvider = ({ children }) => {
         user: null,
         isLoading: false,
       });
+      console.log('Logout completed');
     }
   };
 

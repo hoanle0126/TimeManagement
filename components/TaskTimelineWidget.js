@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { createShadow } from '../utils/shadow';
 
 const timelineTasks = [
   { name: 'Interview', start: 12, end: 14, color: 'warning' },
@@ -49,16 +50,6 @@ export default function TaskTimelineWidget() {
     card: {
       backgroundColor: theme.colors.surface,
       borderRadius: theme.roundness * 1.33,
-      ...(Platform.OS === 'web' 
-        ? { boxShadow: `0 2px 8px ${theme.colors.shadow}1A` }
-        : {
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 3,
-          }
-      ),
     },
     cardContent: {
       padding: isTablet ? 20 : 16,
@@ -136,9 +127,17 @@ export default function TaskTimelineWidget() {
     },
   });
 
+  const cardShadow = createShadow({
+    color: theme.colors.shadow,
+    offsetY: 2,
+    opacity: 0.1,
+    radius: 8,
+    elevation: 3,
+  });
+
   return (
     <View style={styles.container}>
-      <Card style={styles.card}>
+      <Card style={[styles.card, cardShadow]}>
         <Card.Content style={styles.cardContent}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>

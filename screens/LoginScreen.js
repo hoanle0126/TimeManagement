@@ -16,15 +16,29 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { login, clearError } from '../store/slices/authSlice';
 
 export default function LoginScreen({ navigation }) {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const { isLoading, error } = useAppSelector((state) => state.auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+
+  React.useEffect(() => {
+    // Clear error khi component mount
+    dispatch(clearError());
+  }, [dispatch]);
+
+  React.useEffect(() => {
+    // Hiển thị lỗi nếu có
+    if (error) {
+      Alert.alert('Đăng nhập thất bại', error || 'Vui lòng thử lại');
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -32,13 +46,7 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    setLoading(true);
-    const result = await login(email.trim(), password);
-    setLoading(false);
-
-    if (!result.success) {
-      Alert.alert('Đăng nhập thất bại', result.error || 'Vui lòng thử lại');
-    }
+    await dispatch(login({ email: email.trim(), password }));
   };
 
   const styles = StyleSheet.create({
@@ -172,8 +180,8 @@ export default function LoginScreen({ navigation }) {
             <Button
               mode="contained"
               onPress={handleLogin}
-              loading={loading}
-              disabled={loading}
+              loading={isLoading}
+              disabled={isLoading}
               buttonColor={theme.colors.primary}
               textColor={theme.colors.onPrimary}
               style={{ marginTop: 8, borderRadius: theme.roundness }}

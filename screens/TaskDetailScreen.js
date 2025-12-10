@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { Text, IconButton, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TaskProgressWidget from '../components/TaskProgressWidget';

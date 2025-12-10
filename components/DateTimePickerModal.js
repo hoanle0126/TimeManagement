@@ -15,6 +15,7 @@ import {
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { createShadow } from '../utils/shadow';
 
 export default function DateTimePickerModal({
   visible,
@@ -25,6 +26,7 @@ export default function DateTimePickerModal({
   minimumDate,
 }) {
   const theme = useTheme();
+  const isDark = theme.dark;
   const [selectedDate, setSelectedDate] = useState(value || new Date());
   const [currentMonth, setCurrentMonth] = useState(
     value ? new Date(value.getFullYear(), value.getMonth(), 1) : new Date()
@@ -133,10 +135,15 @@ export default function DateTimePickerModal({
     return days;
   };
 
+  // Create overlay color with opacity based on theme
+  const overlayColor = isDark 
+    ? `rgba(0, 0, 0, 0.7)` 
+    : `rgba(0, 0, 0, 0.5)`;
+
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: overlayColor,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -146,15 +153,6 @@ export default function DateTimePickerModal({
       width: Platform.OS === 'web' ? 600 : '90%',
       maxWidth: 600,
       padding: 20,
-      ...(Platform.OS === 'web'
-        ? { boxShadow: `0 8px 32px ${theme.colors.shadow}66` }
-        : {
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.4,
-            shadowRadius: 32,
-            elevation: 16,
-          }),
     },
     header: {
       marginBottom: 20,
@@ -289,7 +287,16 @@ export default function DateTimePickerModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[
+          styles.modalContainer,
+          createShadow({
+            color: theme.colors.shadow,
+            offsetY: 8,
+            opacity: 0.4,
+            radius: 32,
+            elevation: 16,
+          }),
+        ]}>
           <View style={styles.header}>
             <Text variant="titleLarge" style={styles.title}>
               {title}
@@ -444,7 +451,7 @@ export default function DateTimePickerModal({
                   onChange={handleTimeChange}
                   style={styles.timePicker}
                   textColor={theme.colors.onSurface}
-                  themeVariant={theme.dark ? 'dark' : 'light'}
+                  themeVariant={isDark ? 'dark' : 'light'}
                 />
               )}
             </View>

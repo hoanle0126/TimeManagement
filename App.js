@@ -2,15 +2,19 @@
 import './axios-fix';
 
 import React from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Provider as PaperProvider } from 'react-native-paper';
+import { Provider as PaperProvider, ActivityIndicator, useTheme as usePaperTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Provider } from 'react-redux';
+import { store } from './store/store';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import { loadUser } from './store/slices/authSlice';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { createShadow } from './utils/shadow';
 
 import DashboardScreen from './screens/DashboardScreen';
 import MessagesScreen from './screens/MessagesScreen';
@@ -26,7 +30,15 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function MainTabs() {
-  const { theme } = useTheme();
+  const theme = usePaperTheme();
+  
+  const addButtonShadow = createShadow({
+    color: theme.colors.shadow,
+    offsetY: 4,
+    opacity: 0.3,
+    radius: 8,
+    elevation: 8,
+  });
   
   return (
     <Tab.Navigator
@@ -44,20 +56,18 @@ function MainTabs() {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Add') {
             return (
-              <View style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                backgroundColor: theme.colors.secondary,
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: 20,
-                shadowColor: theme.colors.shadow,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 8,
-              }}>
+              <View style={[
+                {
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: theme.colors.secondary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 20,
+                },
+                addButtonShadow,
+              ]}>
                 <Ionicons name="add" size={32} color={theme.colors.onSecondary} />
               </View>
             );
@@ -109,8 +119,14 @@ function AuthStack() {
 }
 
 function AppContent() {
-  const { authState, isLoading } = useAuth();
-  const { theme } = useTheme();
+  const dispatch = useAppDispatch();
+  const { token, isLoading } = useAppSelector((state) => state.auth);
+  const theme = usePaperTheme();
+
+  React.useEffect(() => {
+    // Load user khi app khởi động
+    dispatch(loadUser());
+  }, [dispatch]);
 
   if (isLoading) {
     return (
@@ -122,7 +138,7 @@ function AppContent() {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {authState?.token ? (
+      {token ? (
         // User is logged in
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} />
@@ -139,11 +155,11 @@ function AppContent() {
 }
 
 function AppWithProviders() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   
   return (
     <NavigationContainer theme={{
-      dark: theme.dark,
+      dark: isDark,
       colors: {
         primary: theme.colors.primary,
         background: theme.colors.background,
@@ -153,21 +169,29 @@ function AppWithProviders() {
         notification: theme.colors.error,
       },
     }}>
-      <StatusBar style={theme.dark ? 'light' : 'dark'} />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <AppContent />
     </NavigationContainer>
+  );
+}
+
+function AppWithPaperProvider() {
+  const { theme } = useTheme();
+  
+  return (
+    <PaperProvider theme={theme}>
+      <AppWithProviders />
+    </PaperProvider>
   );
 }
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <PaperProvider>
-        <AppWithProviders />
-      </PaperProvider>
-    </ThemeProvider>
+    <Provider store={store}>
+      <ThemeProvider>
+        <AppWithPaperProvider />
+      </ThemeProvider>
+    </Provider>
   );
 }
 

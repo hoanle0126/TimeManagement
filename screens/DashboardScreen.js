@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import { Text, Avatar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch } from '../store/hooks';
+import { logout } from '../store/slices/authSlice';
 import TodayTasksWidget from '../components/TodayTasksWidget';
 import TaskProgressWidget from '../components/TaskProgressWidget';
 import TaskTimelineWidget from '../components/TaskTimelineWidget';
@@ -17,7 +18,7 @@ import Header from '../components/Header';
 
 export default function DashboardScreen({ navigation }) {
   const theme = useTheme();
-  const { logout } = useAuth();
+  const dispatch = useAppDispatch();
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
   useEffect(() => {
@@ -50,8 +51,16 @@ export default function DashboardScreen({ navigation }) {
               text: 'Đăng xuất',
               style: 'destructive',
               onPress: async () => {
-                await logout();
-                Alert.alert('Đã đăng xuất', 'Bạn đã đăng xuất thành công');
+                console.log('Logout button pressed');
+                try {
+                  await dispatch(logout());
+                  console.log('Logout function completed');
+                  Alert.alert('Đã đăng xuất', 'Bạn đã đăng xuất thành công');
+                } catch (error) {
+                  console.error('Logout error in DashboardScreen:', error);
+                  // Logout vẫn thành công ngay cả khi API có lỗi (token đã hết hạn, etc.)
+                  Alert.alert('Đã đăng xuất', 'Bạn đã đăng xuất thành công');
+                }
               },
             },
           ]

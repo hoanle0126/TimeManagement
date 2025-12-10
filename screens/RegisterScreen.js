@@ -15,18 +15,38 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { register, clearError } from '../store/slices/authSlice';
 
 export default function RegisterScreen({ navigation }) {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const { isLoading, error } = useAppSelector((state) => state.auth);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+
+  React.useEffect(() => {
+    // Clear error khi component mount
+    dispatch(clearError());
+  }, [dispatch]);
+
+  React.useEffect(() => {
+    // Hiển thị lỗi nếu có
+    if (error) {
+      if (typeof error === 'object' && error.errors && Object.keys(error.errors).length > 0) {
+        const errorMessages = Object.values(error.errors).flat().join('\n');
+        Alert.alert('Đăng ký thất bại', errorMessages);
+      } else {
+        const errorMessage = typeof error === 'object' ? error.message : error;
+        Alert.alert('Đăng ký thất bại', errorMessage || 'Vui lòng thử lại');
+      }
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !passwordConfirmation.trim()) {
@@ -44,18 +64,12 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    setLoading(true);
-    const result = await register(name.trim(), email.trim(), password, passwordConfirmation);
-    setLoading(false);
-
-    if (!result.success) {
-      if (result.errors && Object.keys(result.errors).length > 0) {
-        const errorMessages = Object.values(result.errors).flat().join('\n');
-        Alert.alert('Đăng ký thất bại', errorMessages);
-      } else {
-        Alert.alert('Đăng ký thất bại', result.error || 'Vui lòng thử lại');
-      }
-    }
+    await dispatch(register({
+      name: name.trim(),
+      email: email.trim(),
+      password,
+      passwordConfirmation,
+    }));
   };
 
   const styles = StyleSheet.create({
@@ -220,8 +234,8 @@ export default function RegisterScreen({ navigation }) {
             <Button
               mode="contained"
               onPress={handleRegister}
-              loading={loading}
-              disabled={loading}
+              loading={isLoading}
+              disabled={isLoading}
               buttonColor={theme.colors.primary}
               textColor={theme.colors.onPrimary}
               style={{ marginTop: 8, borderRadius: theme.roundness }}
