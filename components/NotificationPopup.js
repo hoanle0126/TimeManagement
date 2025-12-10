@@ -14,6 +14,10 @@ import {
   Divider,
   IconButton,
   Chip,
+  Dialog,
+  Portal,
+  Paragraph,
+  Button,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { SolarIcon } from 'react-native-solar-icons';
@@ -75,6 +79,9 @@ export default function NotificationPopup({
   const { friendRequests } = useAppSelector((state) => state.friends);
   const { notifications: dbNotifications, unreadCount: dbUnreadCount, isLoading } = useAppSelector((state) => state.notifications);
   const { user } = useAppSelector((state) => state.auth);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
 
   // Load notifications từ database khi component mount
   useEffect(() => {
@@ -169,12 +176,10 @@ export default function NotificationPopup({
         dispatch(getFriends());
         dispatch(getFriendRequests());
         
-        // Hiển thị Alert để người dùng chú ý
-        Alert.alert(
-          '🎉 Lời mời đã được chấp nhận',
-          `${acceptedUserName} đã chấp nhận lời mời kết bạn của bạn!`,
-          [{ text: 'OK' }]
-        );
+        // Hiển thị Dialog để người dùng chú ý
+        setDialogTitle('🎉 Lời mời đã được chấp nhận');
+        setDialogMessage(`${acceptedUserName} đã chấp nhận lời mời kết bạn của bạn!`);
+        setDialogVisible(true);
       }
     };
 
@@ -617,6 +622,35 @@ export default function NotificationPopup({
           )}
         </View>
       </TouchableOpacity>
+
+      {/* Dialog */}
+      <Portal>
+        <Dialog
+          visible={dialogVisible}
+          onDismiss={() => setDialogVisible(false)}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.roundness * 2,
+          }}
+        >
+          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+            {dialogTitle}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Paragraph style={{ color: theme.colors.onSurfaceVariant }}>
+              {dialogMessage}
+            </Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => setDialogVisible(false)}
+              textColor={theme.colors.primary}
+            >
+              OK
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </Modal>
   );
 }

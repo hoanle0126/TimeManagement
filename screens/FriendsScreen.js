@@ -18,6 +18,9 @@ import {
   Card,
   ActivityIndicator,
   Badge,
+  Dialog,
+  Portal,
+  Paragraph,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -113,12 +116,10 @@ export default function FriendsScreen() {
         dispatch(getFriends());
         dispatch(getFriendRequests());
         
-        // Hiển thị Alert để người dùng chú ý
-        Alert.alert(
-          '🎉 Lời mời đã được chấp nhận',
-          `${acceptedUserName} đã chấp nhận lời mời kết bạn của bạn!`,
-          [{ text: 'OK' }]
-        );
+        // Hiển thị Dialog để người dùng chú ý
+        setDialogTitle('🎉 Lời mời đã được chấp nhận');
+        setDialogMessage(`${acceptedUserName} đã chấp nhận lời mời kết bạn của bạn!`);
+        setDialogVisible(true);
       }
     };
 
@@ -177,21 +178,29 @@ export default function FriendsScreen() {
   const handleAcceptRequest = async (requestId) => {
     try {
       await dispatch(acceptFriendRequest(requestId)).unwrap();
-      Alert.alert('Thành công', 'Đã chấp nhận lời mời kết bạn');
+      setDialogTitle('Thành công');
+      setDialogMessage('Đã chấp nhận lời mời kết bạn');
+      setDialogVisible(true);
       // Refresh danh sách ngay lập tức
       dispatch(getFriends());
       dispatch(getFriendRequests());
     } catch (error) {
-      Alert.alert('Lỗi', error || 'Không thể chấp nhận lời mời');
+      setDialogTitle('Lỗi');
+      setDialogMessage(error || 'Không thể chấp nhận lời mời');
+      setDialogVisible(true);
     }
   };
 
   const handleRejectRequest = async (requestId) => {
     try {
       await dispatch(rejectFriendRequest(requestId)).unwrap();
-      Alert.alert('Thành công', 'Đã từ chối lời mời kết bạn');
+      setDialogTitle('Thành công');
+      setDialogMessage('Đã từ chối lời mời kết bạn');
+      setDialogVisible(true);
     } catch (error) {
-      Alert.alert('Lỗi', error || 'Không thể từ chối lời mời');
+      setDialogTitle('Lỗi');
+      setDialogMessage(error || 'Không thể từ chối lời mời');
+      setDialogVisible(true);
     }
   };
 

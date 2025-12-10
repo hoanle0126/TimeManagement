@@ -26,10 +26,36 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     taskType: 'detailed', // Task chi tiết
+    assignedUsers: [
+      { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+      { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+    ],
     subtasks: [
-      { id: 1, title: 'Thu thập dữ liệu', completed: true },
-      { id: 2, title: 'Viết báo cáo', completed: true },
-      { id: 3, title: 'Chuẩn bị presentation', completed: false },
+      { 
+        id: 1, 
+        title: 'Thu thập dữ liệu', 
+        completed: true,
+        assignedUsers: [
+          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+        ],
+      },
+      { 
+        id: 2, 
+        title: 'Viết báo cáo', 
+        completed: true,
+        assignedUsers: [
+          { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+        ],
+      },
+      { 
+        id: 3, 
+        title: 'Chuẩn bị presentation', 
+        completed: false,
+        assignedUsers: [
+          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+          { email: 'external@example.com' }, // User chưa có account
+        ],
+      },
     ],
   },
   {
@@ -40,16 +66,19 @@ const MOCK_TASKS = [
     deadline: new Date().toISOString(),
     tags: ['urgent', 'customer'],
     taskType: 'quick', // Task nhanh
+    assignedUsers: [
+      { user_id: 4, name: 'Lê Văn D', email: 'user4@example.com' },
+    ],
   },
 ];
 
 // Flag để bật/tắt mock data (đặt true để dùng mock data, false để dùng data từ API)
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 export default function TodayTasksWidget({ navigation }) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const { todayTasks, isLoading } = useAppSelector((state) => state.tasks);
+  const { todayTasks, isLoading, error } = useAppSelector((state) => state.tasks);
   const [alertVisible, setAlertVisible] = useState(true);
   const isTablet = getIsTablet();
 
@@ -60,6 +89,18 @@ export default function TodayTasksWidget({ navigation }) {
   useEffect(() => {
     dispatch(fetchTodayTasks());
   }, [dispatch]);
+
+  // Debug: Log todayTasks to see what we're getting
+  useEffect(() => {
+    console.log('[TodayTasksWidget] State update:', {
+      todayTasks,
+      todayTasksLength: todayTasks?.length,
+      isLoading,
+      displayTasks,
+      displayTasksLength: displayTasks?.length,
+      USE_MOCK_DATA,
+    });
+  }, [todayTasks, isLoading, displayTasks]);
 
   const cardShadow = createShadow({
     color: theme.colors.shadow,
@@ -118,16 +159,31 @@ export default function TodayTasksWidget({ navigation }) {
             {displayLoading && displayTasks.length === 0 ? (
               <View style={{ paddingHorizontal: isTablet ? 20 : 16, paddingVertical: 20, alignItems: 'center' }}>
                 <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={{ marginTop: 8, color: theme.colors.onSurfaceVariant, fontSize: 12 }}>
+                  Đang tải tasks...
+                </Text>
+              </View>
+            ) : error ? (
+              <View style={{ paddingHorizontal: isTablet ? 20 : 16, paddingVertical: 20, alignItems: 'center' }}>
+                <Text style={{ color: theme.colors.error, fontSize: 14, marginBottom: 4 }}>
+                  Lỗi khi tải tasks
+                </Text>
+                <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 12 }}>
+                  {typeof error === 'string' ? error : JSON.stringify(error)}
+                </Text>
               </View>
             ) : displayTasks.length === 0 ? (
               <View style={{ paddingHorizontal: isTablet ? 20 : 16, paddingVertical: 20, alignItems: 'center' }}>
                 <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 14 }}>
                   Không có task nào hôm nay
                 </Text>
+                <Text style={{ marginTop: 4, color: theme.colors.onSurfaceVariant, fontSize: 12 }}>
+                  (Debug: todayTasks.length = {todayTasks?.length || 0})
+                </Text>
               </View>
             ) : (
               displayTasks.slice(0, 2).map((task, index) => {
-                const isDetailed = task.taskType === 'detailed';
+                const isDetailed = (task.taskType === 'detailed' || task.task_type === 'detailed');
                 const getPriorityColor = (priority) => {
                   switch (priority) {
                     case 'high': return theme.colors.error;
@@ -287,6 +343,68 @@ export default function TodayTasksWidget({ navigation }) {
                               {task.progress}%
                             </Text>
                           </View>
+                          {/* Assigned Users */}
+                          {task.assignedUsers && task.assignedUsers.length > 0 && (
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              marginTop: 4,
+                            }}>
+                              <SolarIcon name="Users" size={12} color={theme.colors.onSurfaceVariant} type="outline" />
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginLeft: -4,
+                              }}>
+                                {task.assignedUsers.slice(0, 3).map((user, userIndex) => (
+                                  <Avatar.Text
+                                    key={userIndex}
+                                    size={20}
+                                    label={user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                                    style={{
+                                      backgroundColor: theme.colors.primaryContainer,
+                                      marginLeft: userIndex > 0 ? -8 : 0,
+                                      borderWidth: 1,
+                                      borderColor: theme.colors.surface,
+                                    }}
+                                    labelStyle={{
+                                      color: theme.colors.onPrimaryContainer,
+                                      fontSize: 9,
+                                    }}
+                                  />
+                                ))}
+                                {task.assignedUsers.length > 3 && (
+                                  <View style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: theme.colors.surfaceVariant,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.surface,
+                                    marginLeft: -8,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                  }}>
+                                    <Text style={{
+                                      fontSize: 8,
+                                      color: theme.colors.onSurfaceVariant,
+                                      fontWeight: '600',
+                                    }}>
+                                      +{task.assignedUsers.length - 3}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={{
+                                fontSize: 10,
+                                color: theme.colors.onSurfaceVariant,
+                                marginLeft: 4,
+                              }}>
+                                {task.assignedUsers.length} người
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       ) : (
                         /* Task nhanh */
@@ -353,6 +471,68 @@ export default function TodayTasksWidget({ navigation }) {
                                   {tag}
                                 </Chip>
                               ))}
+                            </View>
+                          )}
+                          {/* Assigned Users */}
+                          {task.assignedUsers && task.assignedUsers.length > 0 && (
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              marginTop: 4,
+                            }}>
+                              <SolarIcon name="Users" size={12} color={theme.colors.onSurfaceVariant} type="outline" />
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginLeft: -4,
+                              }}>
+                                {task.assignedUsers.slice(0, 3).map((user, userIndex) => (
+                                  <Avatar.Text
+                                    key={userIndex}
+                                    size={20}
+                                    label={user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                                    style={{
+                                      backgroundColor: theme.colors.secondaryContainer,
+                                      marginLeft: userIndex > 0 ? -8 : 0,
+                                      borderWidth: 1,
+                                      borderColor: theme.colors.surface,
+                                    }}
+                                    labelStyle={{
+                                      color: theme.colors.onSecondaryContainer,
+                                      fontSize: 9,
+                                    }}
+                                  />
+                                ))}
+                                {task.assignedUsers.length > 3 && (
+                                  <View style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: theme.colors.surfaceVariant,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.surface,
+                                    marginLeft: -8,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                  }}>
+                                    <Text style={{
+                                      fontSize: 8,
+                                      color: theme.colors.onSurfaceVariant,
+                                      fontWeight: '600',
+                                    }}>
+                                      +{task.assignedUsers.length - 3}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={{
+                                fontSize: 10,
+                                color: theme.colors.onSurfaceVariant,
+                                marginLeft: 4,
+                              }}>
+                                {task.assignedUsers.length} người
+                              </Text>
                             </View>
                           )}
                         </View>

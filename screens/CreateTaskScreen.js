@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   ScrollView,
-  Alert,
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
@@ -12,18 +11,36 @@ import {
   Button, 
   IconButton,
   Chip,
+  Avatar,
   useTheme,
   SegmentedButtons,
+  Dialog,
+  Portal,
+  Paragraph,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SolarIcon } from 'react-native-solar-icons';
 import DateTimePickerModal from '../components/DateTimePickerModal';
+import UserSelector from '../components/UserSelector';
+import AIAssistant from '../components/AIAssistant';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { getFriends } from '../store/slices/friendsSlice';
+import { createTask } from '../store/slices/tasksSlice';
+import { 
+  parseTask, 
+  suggestPriority, 
+  categorizeAndTag, 
+  breakDownTask,
+  clearAll as clearAI,
+} from '../store/slices/aiSlice';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
 export default function CreateTaskScreen({ navigation, route }) {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const { friends } = useAppSelector((state) => state.friends);
   const [mode, setMode] = useState('quick'); // 'quick' or 'detailed'
   
   // Quick Add fields
@@ -43,6 +60,11 @@ export default function CreateTaskScreen({ navigation, route }) {
   const [subtasks, setSubtasks] = useState([]);
   const [subtaskTagInputs, setSubtaskTagInputs] = useState({});
   
+  // Task assignments
+  const [assignedUsers, setAssignedUsers] = useState([]);
+  const [showUserSelector, setShowUserSelector] = useState(false);
+  const [subtaskUserSelectorIndex, setSubtaskUserSelectorIndex] = useState(null);
+  
   // Date pickers
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -50,6 +72,152 @@ export default function CreateTaskScreen({ navigation, route }) {
   
   // Subtask pickers (index-based)
   const [subtaskPickerIndex, setSubtaskPickerIndex] = useState(null);
+  
+  // AI features
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showPrioritySuggestion, setShowPrioritySuggestion] = useState(false);
+  const { 
+    parsedTask, 
+    prioritySuggestion, 
+    categorySuggestion, 
+    breakdownResult,
+    isLoading: aiLoading 
+  } = useAppSelector((state) => state.ai);
+
+  // Dialog states
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [dialogOnConfirm, setDialogOnConfirm] = useState(null);
+  const [dialogType, setDialogType] = useState('info'); // 'info', 'success', 'error'
+
+  // Load friends when component mounts
+  React.useEffect(() => {
+    dispatch(getFriends());
+    return () => {
+      dispatch(clearAI());
+    };
+  }, [dispatch]);
+
+  // Auto-fill form when AI parses task
+  React.useEffect(() => {
+    if (parsedTask) {
+      // Show warning if using rule-based fallback
+      if (parsedTask.method === 'rule-based' || parsedTask.warning) {
+        setDialogTitle('Thông báo');
+        setDialogMessage(parsedTask.warning || 'AI không khả dụng, đang sử dụng phân tích dựa trên từ khóa. Kết quả có thể không chính xác bằng AI.');
+        setDialogType('info');
+        setDialogOnConfirm(() => () => setDialogVisible(false));
+        setDialogVisible(true);
+      }
+      
+      if (parsedTask.title) setTaskTitle(parsedTask.title);
+      if (parsedTask.description) setTaskDescription(parsedTask.description);
+      if (parsedTask.priority) setPriority(parsedTask.priority);
+      if (parsedTask.deadline) {
+        const deadlineDate = new Date(parsedTask.deadline);
+        setDeadline(deadlineDate);
+      }
+      if (parsedTask.category) setCategory(parsedTask.category);
+      if (parsedTask.tags && parsedTask.tags.length > 0) {
+        setTags(parsedTask.tags);
+      }
+      setShowAIAssistant(false);
+    }
+  }, [parsedTask]);
+
+  // Auto-suggest priority when title changes
+  React.useEffect(() => {
+    if (taskTitle.trim().length > 10 && !prioritySuggestion) {
+      const timeoutId = setTimeout(() => {
+        dispatch(suggestPriority({
+          title: taskTitle,
+          description: taskDescription,
+          deadline: deadline?.toISOString(),
+        }));
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [taskTitle, taskDescription, deadline]);
+
+  // Auto-categorize when title changes
+  React.useEffect(() => {
+    if (taskTitle.trim().length > 10 && !categorySuggestion) {
+      const timeoutId = setTimeout(() => {
+        dispatch(categorizeAndTag({
+          title: taskTitle,
+          description: taskDescription,
+        }));
+      }, 1500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [taskTitle, taskDescription]);
+
+  // Apply priority suggestion
+  React.useEffect(() => {
+    if (prioritySuggestion && showPrioritySuggestion) {
+      setPriority(prioritySuggestion.priority);
+      setShowPrioritySuggestion(false);
+    }
+  }, [prioritySuggestion, showPrioritySuggestion]);
+
+  // Apply category suggestion
+  React.useEffect(() => {
+    if (categorySuggestion) {
+      if (categorySuggestion.category && !category) {
+        setCategory(categorySuggestion.category);
+      }
+      if (categorySuggestion.tags && categorySuggestion.tags.length > 0 && tags.length === 0) {
+        setTags(categorySuggestion.tags);
+      }
+    }
+  }, [categorySuggestion]);
+
+  // Handle AI parse
+  const handleAIParse = async (text) => {
+    console.log('[CreateTaskScreen] handleAIParse called', { text });
+    try {
+      const result = await dispatch(parseTask(text));
+      console.log('[CreateTaskScreen] parseTask result', {
+        type: result.type,
+        payload: result.payload,
+        error: result.error
+      });
+    } catch (error) {
+      console.error('[CreateTaskScreen] handleAIParse error', error);
+    }
+  };
+
+  // Handle AI breakdown
+  const handleAIBreakdown = async () => {
+    if (taskTitle.trim() && taskDescription.trim()) {
+      await dispatch(breakDownTask({
+        title: taskTitle,
+        description: taskDescription,
+      }));
+    }
+  };
+
+  // Apply breakdown result
+  React.useEffect(() => {
+    if (breakdownResult && breakdownResult.subtasks) {
+      const newSubtasks = breakdownResult.subtasks.map((st, index) => ({
+        id: Date.now() + index,
+        title: st.title || '',
+        description: st.description || '',
+        deadline: null,
+        priority: 'medium',
+        tags: [],
+        assignedUsers: [],
+      }));
+      setSubtasks(newSubtasks);
+      setDialogTitle('Thành công');
+      setDialogMessage(`Đã tạo ${newSubtasks.length} subtasks tự động. Bạn có thể chỉnh sửa chúng.`);
+      setDialogType('success');
+      setDialogOnConfirm(() => () => setDialogVisible(false));
+      setDialogVisible(true);
+    }
+  }, [breakdownResult]);
 
   const handleAddTag = () => {
     const trimmedTag = tagInput.trim();
@@ -125,59 +293,98 @@ export default function CreateTaskScreen({ navigation, route }) {
     return `${day}/${month}/${year}`;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!taskTitle.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tiêu đề task');
+      setDialogTitle('Lỗi');
+      setDialogMessage('Vui lòng nhập tiêu đề task');
+      setDialogType('error');
+      setDialogOnConfirm(() => () => setDialogVisible(false));
+      setDialogVisible(true);
       return;
     }
 
     if (mode === 'quick') {
       if (!deadline) {
-        Alert.alert('Lỗi', 'Vui lòng chọn deadline');
+        setDialogTitle('Lỗi');
+        setDialogMessage('Vui lòng chọn deadline');
+        setDialogType('error');
+        setDialogOnConfirm(() => () => setDialogVisible(false));
+        setDialogVisible(true);
         return;
       }
     } else {
       if (dueDate < startDate) {
-        Alert.alert('Lỗi', 'Ngày hết hạn không thể trước ngày bắt đầu');
+        setDialogTitle('Lỗi');
+        setDialogMessage('Ngày hết hạn không thể trước ngày bắt đầu');
+        setDialogType('error');
+        setDialogOnConfirm(() => () => setDialogVisible(false));
+        setDialogVisible(true);
         return;
       }
     }
 
     const taskData = {
-      title: taskTitle,
-      description: taskDescription,
+      title: taskTitle.trim(),
+      description: taskDescription.trim() || null,
       priority,
+      task_type: mode,
       ...(mode === 'quick' 
         ? { 
             due_date: deadline.toISOString(),
-            tags: tags,
+            tags: tags.length > 0 ? tags : null,
+            assigned_users: assignedUsers.length > 0 ? assignedUsers : null,
           }
         : {
             start_date: startDate.toISOString(),
             due_date: dueDate.toISOString(),
-            category,
+            category: category.trim() || null,
             status,
             progress,
-            subtasks: subtasks.filter(st => st.title.trim()).map(st => ({
-              title: st.title,
-              description: st.description,
+            subtasks: subtasks.filter(st => st.title.trim()).map((st) => ({
+              title: st.title.trim(),
+              description: st.description.trim() || null,
               deadline: st.deadline ? st.deadline.toISOString() : null,
               priority: st.priority,
-              tags: st.tags,
+              tags: st.tags && st.tags.length > 0 ? st.tags : null,
+              assigned_users: st.assignedUsers && st.assignedUsers.length > 0 ? st.assignedUsers : null,
             })),
+            assigned_users: assignedUsers.length > 0 ? assignedUsers : null,
           }
       ),
     };
 
-    // TODO: Dispatch createTask action
-    console.log('Task data:', taskData);
-    
-    Alert.alert('Thành công', 'Task đã được tạo thành công!', [
-      {
-        text: 'OK',
-        onPress: () => navigation.goBack(),
-      },
-    ]);
+    try {
+      // Dispatch createTask action
+      const result = await dispatch(createTask(taskData));
+      
+      if (createTask.fulfilled.match(result)) {
+        // Success - navigate to Home
+        setDialogTitle('Thành công');
+        setDialogMessage('Task đã được tạo thành công!');
+        setDialogType('success');
+        setDialogOnConfirm(() => () => {
+          setDialogVisible(false);
+          // Navigate to Home (MainTabs)
+          navigation.navigate('MainTabs', { screen: 'Home' });
+        });
+        setDialogVisible(true);
+      } else {
+        // Error
+        const errorMessage = result.payload?.message || result.payload?.error || 'Không thể tạo task. Vui lòng thử lại.';
+        setDialogTitle('Lỗi');
+        setDialogMessage(errorMessage);
+        setDialogType('error');
+        setDialogOnConfirm(() => () => setDialogVisible(false));
+        setDialogVisible(true);
+      }
+    } catch (error) {
+      console.error('[CreateTaskScreen] handleSave error:', error);
+      setDialogTitle('Lỗi');
+      setDialogMessage('Đã xảy ra lỗi khi tạo task. Vui lòng thử lại.');
+      setDialogType('error');
+      setDialogOnConfirm(() => () => setDialogVisible(false));
+      setDialogVisible(true);
+    }
   };
 
   const handleCancel = () => {
@@ -252,6 +459,19 @@ export default function CreateTaskScreen({ navigation, route }) {
             backgroundColor: theme.colors.surfaceVariant,
           }}
         />
+        {/* AI Assistant Button */}
+        <Button
+          mode="contained-tonal"
+          onPress={() => setShowAIAssistant(true)}
+          icon="auto-fix"
+          style={{
+            marginTop: 12,
+            backgroundColor: theme.colors.primaryContainer,
+          }}
+          textColor={theme.colors.onPrimaryContainer}
+        >
+          🤖 Tạo bằng AI (Nói hoặc nhập tự nhiên)
+        </Button>
       </View>
 
       <ScrollView
@@ -261,14 +481,52 @@ export default function CreateTaskScreen({ navigation, route }) {
       >
         {/* Title */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={{
-            fontSize: 14,
-            fontWeight: '600',
-            color: theme.colors.onSurface,
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: 8,
           }}>
-            Tiêu đề Task *
-          </Text>
+            <Text style={{
+              fontSize: 14,
+              fontWeight: '600',
+              color: theme.colors.onSurface,
+            }}>
+              Tiêu đề Task *
+            </Text>
+            {prioritySuggestion && (
+              <TouchableOpacity
+                onPress={() => {
+                  setDialogTitle('Đề xuất ưu tiên từ AI');
+                  setDialogMessage(`AI đề xuất: ${prioritySuggestion.priority === 'high' ? 'Cao' : prioritySuggestion.priority === 'medium' ? 'Trung bình' : 'Thấp'}\n\n${prioritySuggestion.reason || ''}\n\nBạn có muốn áp dụng không?`);
+                  setDialogType('info');
+                  setDialogOnConfirm(() => () => {
+                    setPriority(prioritySuggestion.priority);
+                    setDialogVisible(false);
+                  });
+                  setDialogVisible(true);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  backgroundColor: theme.colors.primaryContainer,
+                  borderRadius: theme.roundness,
+                }}
+              >
+                <SolarIcon name="MagicStick" size={14} color={theme.colors.onPrimaryContainer} type="outline" />
+                <Text style={{
+                  fontSize: 11,
+                  color: theme.colors.onPrimaryContainer,
+                  fontWeight: '600',
+                }}>
+                  AI: {prioritySuggestion.priority === 'high' ? 'Cao' : prioritySuggestion.priority === 'medium' ? 'TB' : 'Thấp'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TextInput
             label="Nhập tiêu đề task..."
             value={taskTitle}
@@ -393,14 +651,43 @@ export default function CreateTaskScreen({ navigation, route }) {
 
             {/* Tags */}
             <View style={{ marginBottom: 24 }}>
-              <Text style={{
-                fontSize: 14,
-                fontWeight: '600',
-                color: theme.colors.onSurface,
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: 8,
               }}>
-                Tags
-              </Text>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: theme.colors.onSurface,
+                }}>
+                  Tags
+                </Text>
+                {categorySuggestion && categorySuggestion.tags && categorySuggestion.tags.length > 0 && tags.length === 0 && (
+                  <TouchableOpacity
+                    onPress={() => setTags(categorySuggestion.tags)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      backgroundColor: theme.colors.secondaryContainer,
+                      borderRadius: theme.roundness,
+                    }}
+                  >
+                    <SolarIcon name="MagicStick" size={14} color={theme.colors.onSecondaryContainer} type="outline" />
+                    <Text style={{
+                      fontSize: 11,
+                      color: theme.colors.onSecondaryContainer,
+                      fontWeight: '600',
+                    }}>
+                      AI: {categorySuggestion.tags.length} tags
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <View style={{
                 flexDirection: 'row',
                 gap: 8,
@@ -534,14 +821,43 @@ export default function CreateTaskScreen({ navigation, route }) {
 
             {/* Category */}
             <View style={{ marginBottom: 24 }}>
-              <Text style={{
-                fontSize: 14,
-                fontWeight: '600',
-                color: theme.colors.onSurface,
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: 8,
               }}>
-                Danh mục
-              </Text>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: theme.colors.onSurface,
+                }}>
+                  Danh mục
+                </Text>
+                {categorySuggestion && categorySuggestion.category && !category && (
+                  <TouchableOpacity
+                    onPress={() => setCategory(categorySuggestion.category)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      backgroundColor: theme.colors.secondaryContainer,
+                      borderRadius: theme.roundness,
+                    }}
+                  >
+                    <SolarIcon name="MagicStick" size={14} color={theme.colors.onSecondaryContainer} type="outline" />
+                    <Text style={{
+                      fontSize: 11,
+                      color: theme.colors.onSecondaryContainer,
+                      fontWeight: '600',
+                    }}>
+                      AI: {categorySuggestion.category}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <TextInput
                 label="Nhập danh mục..."
                 value={category}
@@ -678,6 +994,85 @@ export default function CreateTaskScreen({ navigation, route }) {
               </View>
             </View>
 
+            {/* Assign Users to Task */}
+            <View style={{ marginBottom: 24 }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: theme.colors.onSurface,
+                }}>
+                  Người tham gia
+                </Text>
+                <Button
+                  mode="outlined"
+                  compact
+                  onPress={() => setShowUserSelector(true)}
+                  icon="account-plus"
+                  textColor={theme.colors.primary}
+                  style={{
+                    borderColor: theme.colors.primary,
+                  }}
+                >
+                  Thêm người
+                </Button>
+              </View>
+              {assignedUsers.length > 0 ? (
+                <View style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}>
+                  {assignedUsers.map((user, index) => (
+                    <Chip
+                      key={index}
+                      mode="flat"
+                      onClose={() => {
+                        setAssignedUsers(assignedUsers.filter((_, i) => i !== index));
+                      }}
+                      avatar={
+                        user.user_id ? (
+                          <Avatar.Text
+                            size={24}
+                            label={user.name?.charAt(0).toUpperCase() || 'U'}
+                            style={{
+                              backgroundColor: theme.colors.primary,
+                            }}
+                            labelStyle={{
+                              color: theme.colors.onPrimary,
+                              fontSize: 12,
+                            }}
+                          />
+                        ) : null
+                      }
+                      style={{
+                        backgroundColor: theme.colors.primaryContainer,
+                      }}
+                      textStyle={{
+                        color: theme.colors.onPrimaryContainer,
+                        fontSize: 12,
+                      }}
+                    >
+                      {user.name || user.email}
+                    </Chip>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{
+                  fontSize: 12,
+                  color: theme.colors.onSurfaceVariant,
+                  fontStyle: 'italic',
+                }}>
+                  Chưa có người tham gia. Nhấn "Thêm người" để thêm.
+                </Text>
+              )}
+            </View>
+
             {/* Subtasks */}
             <View style={{ marginBottom: 24 }}>
               <View style={{
@@ -693,19 +1088,38 @@ export default function CreateTaskScreen({ navigation, route }) {
                 }}>
                   Tasks phụ ({subtasks.length})
                 </Text>
-                <Button
-                  mode="outlined"
-                  onPress={handleAddSubtask}
-                  icon="plus"
-                  compact
-                  style={{
-                    borderRadius: theme.roundness,
-                  }}
-                  textColor={theme.colors.primary}
-                  borderColor={theme.colors.primary}
-                >
-                  Thêm task phụ
-                </Button>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {taskTitle.trim() && taskDescription.trim() && (
+                    <Button
+                      mode="contained-tonal"
+                      onPress={handleAIBreakdown}
+                      icon="auto-fix"
+                      compact
+                      style={{
+                        borderRadius: theme.roundness,
+                        backgroundColor: theme.colors.secondaryContainer,
+                      }}
+                      textColor={theme.colors.onSecondaryContainer}
+                      loading={aiLoading}
+                      disabled={aiLoading}
+                    >
+                      AI Chia nhỏ
+                    </Button>
+                  )}
+                  <Button
+                    mode="outlined"
+                    onPress={handleAddSubtask}
+                    icon="plus"
+                    compact
+                    style={{
+                      borderRadius: theme.roundness,
+                    }}
+                    textColor={theme.colors.primary}
+                    borderColor={theme.colors.primary}
+                  >
+                    Thêm task phụ
+                  </Button>
+                </View>
               </View>
 
               {subtasks.length === 0 ? (
@@ -1042,6 +1456,98 @@ export default function CreateTaskScreen({ navigation, route }) {
         title="Chọn ngày/giờ hết hạn"
         minimumDate={startDate}
       />
+
+      {/* User Selector for Main Task */}
+      <UserSelector
+        visible={showUserSelector}
+        onClose={() => setShowUserSelector(false)}
+        selectedUsers={assignedUsers}
+        friends={friends}
+        onSelectUsers={setAssignedUsers}
+        title="Chọn người tham gia task"
+        allowEmail={true}
+      />
+
+      {/* User Selector for Subtask */}
+      {subtaskUserSelectorIndex !== null && (
+        <UserSelector
+          visible={subtaskUserSelectorIndex !== null}
+          onClose={() => setSubtaskUserSelectorIndex(null)}
+          selectedUsers={subtasks[subtaskUserSelectorIndex]?.assignedUsers || []}
+          friends={friends}
+          onSelectUsers={(users) => {
+            const updatedSubtasks = [...subtasks];
+            updatedSubtasks[subtaskUserSelectorIndex] = {
+              ...updatedSubtasks[subtaskUserSelectorIndex],
+              assignedUsers: users,
+            };
+            setSubtasks(updatedSubtasks);
+            setSubtaskUserSelectorIndex(null);
+          }}
+          title={`Chọn người tham gia task phụ #${subtaskUserSelectorIndex + 1}`}
+          allowEmail={true}
+        />
+      )}
+
+      {/* AI Assistant Modal */}
+      <AIAssistant
+        visible={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        onParseComplete={handleAIParse}
+        isLoading={aiLoading}
+      />
+
+      {/* Dialog */}
+      <Portal>
+        <Dialog
+          visible={dialogVisible}
+          onDismiss={() => setDialogVisible(false)}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.roundness * 2,
+          }}
+        >
+          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+            {dialogTitle}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Paragraph style={{ color: theme.colors.onSurfaceVariant }}>
+              {dialogMessage}
+            </Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            {dialogType === 'info' && (
+              <>
+                <Button
+                  onPress={() => setDialogVisible(false)}
+                  textColor={theme.colors.onSurfaceVariant}
+                >
+                  Không
+                </Button>
+                <Button
+                  onPress={() => {
+                    if (dialogOnConfirm) dialogOnConfirm();
+                  }}
+                  textColor={theme.colors.primary}
+                >
+                  Có
+                </Button>
+              </>
+            )}
+            {dialogType !== 'info' && (
+              <Button
+                onPress={() => {
+                  if (dialogOnConfirm) dialogOnConfirm();
+                  else setDialogVisible(false);
+                }}
+                textColor={dialogType === 'success' ? theme.colors.primary : theme.colors.error}
+              >
+                OK
+              </Button>
+            )}
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

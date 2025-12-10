@@ -12,6 +12,9 @@ import {
   TextInput, 
   Button, 
   useTheme,
+  Dialog,
+  Portal,
+  Paragraph,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +31,9 @@ export default function RegisterScreen({ navigation }) {
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
 
   React.useEffect(() => {
     // Clear error khi component mount
@@ -39,28 +45,37 @@ export default function RegisterScreen({ navigation }) {
     if (error) {
       if (typeof error === 'object' && error.errors && Object.keys(error.errors).length > 0) {
         const errorMessages = Object.values(error.errors).flat().join('\n');
-        Alert.alert('Đăng ký thất bại', errorMessages);
+        setDialogTitle('Đăng ký thất bại');
+        setDialogMessage(errorMessages);
       } else {
         const errorMessage = typeof error === 'object' ? error.message : error;
-        Alert.alert('Đăng ký thất bại', errorMessage || 'Vui lòng thử lại');
+        setDialogTitle('Đăng ký thất bại');
+        setDialogMessage(errorMessage || 'Vui lòng thử lại');
       }
+      setDialogVisible(true);
       dispatch(clearError());
     }
   }, [error, dispatch]);
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !passwordConfirmation.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      setDialogTitle('Lỗi');
+      setDialogMessage('Vui lòng nhập đầy đủ thông tin');
+      setDialogVisible(true);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+      setDialogTitle('Lỗi');
+      setDialogMessage('Mật khẩu phải có ít nhất 6 ký tự');
+      setDialogVisible(true);
       return;
     }
 
     if (password !== passwordConfirmation) {
-      Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+      setDialogTitle('Lỗi');
+      setDialogMessage('Mật khẩu xác nhận không khớp');
+      setDialogVisible(true);
       return;
     }
 
@@ -256,6 +271,35 @@ export default function RegisterScreen({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Dialog */}
+      <Portal>
+        <Dialog
+          visible={dialogVisible}
+          onDismiss={() => setDialogVisible(false)}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.roundness * 2,
+          }}
+        >
+          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+            {dialogTitle}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Paragraph style={{ color: theme.colors.onSurfaceVariant }}>
+              {dialogMessage}
+            </Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => setDialogVisible(false)}
+              textColor={theme.colors.primary}
+            >
+              OK
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

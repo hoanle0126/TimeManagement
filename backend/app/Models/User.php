@@ -86,4 +86,31 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class)->where('read', false);
     }
+
+    /**
+     * Tasks created by this user
+     */
+    public function tasks()
+    {
+        return $this->hasMany(Task::class, 'user_id');
+    }
+
+    /**
+     * Tasks assigned to this user
+     */
+    public function assignedTasks()
+    {
+        return $this->belongsToMany(Task::class, 'task_assignments', 'user_id', 'task_id')
+            ->whereNull('task_assignments.subtask_id')
+            ->withPivot('role', 'assigned_by', 'subtask_id', 'created_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * All task assignments for this user
+     */
+    public function taskAssignments()
+    {
+        return $this->hasMany(TaskAssignment::class, 'user_id');
+    }
 }

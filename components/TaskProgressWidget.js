@@ -13,7 +13,8 @@ export default function TaskProgressWidget({ task }) {
 
   // Tính toán progress data từ task
   const generateProgressData = () => {
-    if (!task || task.taskType !== 'detailed' || !task.start_date) {
+    const isDetailed = task?.taskType === 'detailed' || task?.task_type === 'detailed';
+    if (!task || !isDetailed || !task.start_date) {
       return [];
     }
 
@@ -98,7 +99,15 @@ export default function TaskProgressWidget({ task }) {
   };
 
   // Nếu không có task hoặc không phải task chi tiết, không hiển thị
-  if (!task || task.taskType !== 'detailed' || progressData.length === 0) {
+  const isDetailed = task?.taskType === 'detailed' || task?.task_type === 'detailed';
+  if (!task || !isDetailed || progressData.length === 0) {
+    console.log('[TaskProgressWidget] Not rendering:', {
+      hasTask: !!task,
+      isDetailed,
+      progressDataLength: progressData.length,
+      taskType: task?.taskType || task?.task_type,
+      start_date: task?.start_date,
+    });
     return null;
   }
 

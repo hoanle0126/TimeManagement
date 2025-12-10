@@ -12,9 +12,13 @@ import {
   Chip,
   ProgressBar,
   Button,
+  Avatar,
   useTheme,
   ActivityIndicator,
   Card,
+  Dialog,
+  Portal,
+  Paragraph,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SolarIcon } from 'react-native-solar-icons';
@@ -37,11 +41,45 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     taskType: 'detailed',
+    assignedUsers: [
+      { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+      { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+      { email: 'external@example.com' }, // User chưa có account
+    ],
     subtasks: [
-      { id: 1, title: 'Thu thập dữ liệu từ các nguồn', completed: true },
-      { id: 2, title: 'Viết báo cáo tổng hợp', completed: true },
-      { id: 3, title: 'Chuẩn bị presentation slides', completed: false },
-      { id: 4, title: 'Review và chỉnh sửa', completed: false },
+      { 
+        id: 1, 
+        title: 'Thu thập dữ liệu từ các nguồn', 
+        completed: true,
+        assignedUsers: [
+          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+        ],
+      },
+      { 
+        id: 2, 
+        title: 'Viết báo cáo tổng hợp', 
+        completed: true,
+        assignedUsers: [
+          { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+        ],
+      },
+      { 
+        id: 3, 
+        title: 'Chuẩn bị presentation slides', 
+        completed: false,
+        assignedUsers: [
+          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+          { email: 'external@example.com' },
+        ],
+      },
+      { 
+        id: 4, 
+        title: 'Review và chỉnh sửa', 
+        completed: false,
+        assignedUsers: [
+          { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+        ],
+      },
     ],
   },
   {
@@ -54,10 +92,13 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     taskType: 'quick',
+    assignedUsers: [
+      { user_id: 4, name: 'Lê Văn D', email: 'user4@example.com' },
+    ],
   },
 ];
 
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -70,6 +111,7 @@ export default function TaskDetailScreen({ navigation, route }) {
   
   const [task, setTask] = useState(null);
   const [localLoading, setLocalLoading] = useState(true);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 
   useEffect(() => {
     if (USE_MOCK_DATA) {
@@ -168,23 +210,15 @@ export default function TaskDetailScreen({ navigation, route }) {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Xóa Task',
-      'Bạn có chắc chắn muốn xóa task này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: async () => {
-            if (!USE_MOCK_DATA) {
-              await dispatch(deleteTask(displayTask.id));
-            }
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleteDialogVisible(false);
+    if (!USE_MOCK_DATA) {
+      await dispatch(deleteTask(displayTask.id));
+    }
+    navigation.goBack();
   };
 
   const cardShadow = createShadow({
@@ -281,7 +315,7 @@ export default function TaskDetailScreen({ navigation, route }) {
     );
   }
 
-  const isDetailed = displayTask.taskType === 'detailed';
+  const isDetailed = (displayTask.taskType === 'detailed' || displayTask.task_type === 'detailed');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
@@ -429,6 +463,56 @@ export default function TaskDetailScreen({ navigation, route }) {
                     {getStatusLabel(displayTask.status)}
                   </Chip>
                 </View>
+
+                {/* Assigned Users */}
+                {displayTask.assignedUsers && displayTask.assignedUsers.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '600',
+                      color: theme.colors.onSurfaceVariant,
+                      marginBottom: 8,
+                    }}>
+                      Người tham gia
+                    </Text>
+                    <View style={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                    }}>
+                      {displayTask.assignedUsers.map((user, index) => (
+                        <Chip
+                          key={index}
+                          mode="flat"
+                          avatar={
+                            user.user_id ? (
+                              <Avatar.Text
+                                size={24}
+                                label={user.name?.charAt(0).toUpperCase() || 'U'}
+                                style={{
+                                  backgroundColor: theme.colors.primary,
+                                }}
+                                labelStyle={{
+                                  color: theme.colors.onPrimary,
+                                  fontSize: 12,
+                                }}
+                              />
+                            ) : null
+                          }
+                          style={{
+                            backgroundColor: theme.colors.primaryContainer,
+                          }}
+                          textStyle={{
+                            color: theme.colors.onPrimaryContainer,
+                            fontSize: 12,
+                          }}
+                        >
+                          {user.name || user.email}
+                        </Chip>
+                      ))}
+                    </View>
+                  </View>
+                )}
 
                 {/* Dates */}
                 <View style={{ gap: 12, marginBottom: 16 }}>
@@ -687,17 +771,22 @@ export default function TaskDetailScreen({ navigation, route }) {
                   </View>
                   <View style={{ gap: 12 }}>
                     {displayTask.subtasks.map((subtask, index) => (
-                      <TouchableOpacity
+                      <View
                         key={subtask.id}
                         style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 12,
                           padding: 12,
                           backgroundColor: theme.colors.surfaceVariant,
                           borderRadius: theme.roundness,
+                          gap: 8,
                         }}
                       >
+                        <TouchableOpacity
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 12,
+                          }}
+                        >
                         <View style={{
                           width: 24,
                           height: 24,
@@ -733,6 +822,60 @@ export default function TaskDetailScreen({ navigation, route }) {
                           #{index + 1}
                         </Text>
                       </TouchableOpacity>
+
+                      {/* Assigned Users for Subtask */}
+                      {subtask.assignedUsers && subtask.assignedUsers.length > 0 && (
+                        <View style={{
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          gap: 6,
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTopWidth: 1,
+                          borderTopColor: theme.colors.outline + '40',
+                        }}>
+                          <Text style={{
+                            fontSize: 11,
+                            color: theme.colors.onSurfaceVariant,
+                            marginRight: 4,
+                          }}>
+                            Người tham gia:
+                          </Text>
+                          {subtask.assignedUsers.map((user, userIndex) => (
+                            <Chip
+                              key={userIndex}
+                              mode="flat"
+                              compact
+                              avatar={
+                                user.user_id ? (
+                                  <Avatar.Text
+                                    size={20}
+                                    label={user.name?.charAt(0).toUpperCase() || 'U'}
+                                    style={{
+                                      backgroundColor: theme.colors.secondary,
+                                    }}
+                                    labelStyle={{
+                                      color: theme.colors.onSecondary,
+                                      fontSize: 10,
+                                    }}
+                                  />
+                                ) : null
+                              }
+                              style={{
+                                backgroundColor: theme.colors.secondaryContainer,
+                                height: 24,
+                              }}
+                              textStyle={{
+                                color: theme.colors.onSecondaryContainer,
+                                fontSize: 10,
+                              }}
+                            >
+                              {user.name || user.email}
+                            </Chip>
+                          ))}
+                        </View>
+                      )}
+                    </View>
                     ))}
                   </View>
                 </Card.Content>
@@ -937,6 +1080,41 @@ export default function TaskDetailScreen({ navigation, route }) {
           </Button>
         </View>
       </ScrollView>
+
+      {/* Delete Confirmation Dialog */}
+      <Portal>
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => setDeleteDialogVisible(false)}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.roundness * 2,
+          }}
+        >
+          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+            Xóa Task
+          </Dialog.Title>
+          <Dialog.Content>
+            <Paragraph style={{ color: theme.colors.onSurfaceVariant }}>
+              Bạn có chắc chắn muốn xóa task này?
+            </Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => setDeleteDialogVisible(false)}
+              textColor={theme.colors.onSurfaceVariant}
+            >
+              Hủy
+            </Button>
+            <Button
+              onPress={confirmDelete}
+              textColor={theme.colors.error}
+            >
+              Xóa
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

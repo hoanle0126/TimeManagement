@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   FAB,
   IconButton,
+  Avatar,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SolarIcon } from 'react-native-solar-icons';
@@ -39,10 +40,35 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     taskType: 'detailed',
+    assignedUsers: [
+      { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+      { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+    ],
     subtasks: [
-      { id: 1, title: 'Thu thập dữ liệu', completed: true },
-      { id: 2, title: 'Viết báo cáo', completed: true },
-      { id: 3, title: 'Chuẩn bị presentation', completed: false },
+      { 
+        id: 1, 
+        title: 'Thu thập dữ liệu', 
+        completed: true,
+        assignedUsers: [
+          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+        ],
+      },
+      { 
+        id: 2, 
+        title: 'Viết báo cáo', 
+        completed: true,
+        assignedUsers: [
+          { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+        ],
+      },
+      { 
+        id: 3, 
+        title: 'Chuẩn bị presentation', 
+        completed: false,
+        assignedUsers: [
+          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+        ],
+      },
     ],
   },
   {
@@ -55,6 +81,9 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     taskType: 'quick',
+    assignedUsers: [
+      { user_id: 4, name: 'Lê Văn D', email: 'user4@example.com' },
+    ],
   },
   {
     id: 3,
@@ -69,9 +98,23 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     taskType: 'detailed',
+    assignedUsers: [
+      { user_id: 5, name: 'Phạm Thị E', email: 'user5@example.com' },
+    ],
     subtasks: [
-      { id: 1, title: 'Research', completed: false },
-      { id: 2, title: 'Wireframe', completed: false },
+      { 
+        id: 1, 
+        title: 'Research', 
+        completed: false,
+        assignedUsers: [
+          { user_id: 5, name: 'Phạm Thị E', email: 'user5@example.com' },
+        ],
+      },
+      { 
+        id: 2, 
+        title: 'Wireframe', 
+        completed: false,
+      },
     ],
   },
   {
@@ -84,11 +127,15 @@ const MOCK_TASKS = [
     created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString(),
     taskType: 'quick',
+    assignedUsers: [
+      { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+      { email: 'manager@example.com' },
+    ],
   },
 ];
 
 // Flag để bật/tắt mock data
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 const filterTabs = [
   { id: 'all', label: 'Tất cả' },
@@ -100,7 +147,7 @@ const filterTabs = [
 export default function MyTasksScreen({ navigation }) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const { tasks, isLoading } = useAppSelector((state) => state.tasks);
+  const { tasks, isLoading, error } = useAppSelector((state) => state.tasks);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -114,10 +161,24 @@ export default function MyTasksScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
+    console.log('[MyTasksScreen] Mounted, USE_MOCK_DATA:', USE_MOCK_DATA);
     if (!USE_MOCK_DATA) {
+      console.log('[MyTasksScreen] Dispatching fetchTasks');
       dispatch(fetchTasks());
     }
   }, [dispatch]);
+
+  // Debug: Log tasks to see what we're getting
+  useEffect(() => {
+    console.log('[MyTasksScreen] State update:', {
+      tasks,
+      tasksLength: tasks?.length,
+      isLoading,
+      displayTasks,
+      displayTasksLength: displayTasks?.length,
+      filteredTasksLength: filteredTasks?.length,
+    });
+  }, [tasks, isLoading, displayTasks, filteredTasks]);
 
   const { width } = dimensions;
   const isTablet = width >= 768;
@@ -319,6 +380,36 @@ export default function MyTasksScreen({ navigation }) {
                 Đang tải tasks...
               </Text>
             </View>
+          ) : error ? (
+            <View style={{
+              paddingVertical: 60,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <SolarIcon 
+                name="DangerCircle" 
+                size={64} 
+                color={theme.colors.error} 
+                type="outline" 
+              />
+              <Text style={{
+                marginTop: 16,
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.error,
+                marginBottom: 8,
+              }}>
+                Lỗi khi tải tasks
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: theme.colors.onSurfaceVariant,
+                textAlign: 'center',
+                paddingHorizontal: 20,
+              }}>
+                {typeof error === 'string' ? error : JSON.stringify(error)}
+              </Text>
+            </View>
           ) : filteredTasks.length === 0 ? (
             <View style={{
               paddingVertical: 60,
@@ -353,7 +444,7 @@ export default function MyTasksScreen({ navigation }) {
           ) : (
             <View style={{ gap: 12 }}>
               {filteredTasks.map((task) => {
-                const isDetailed = task.taskType === 'detailed';
+                const isDetailed = (task.taskType === 'detailed' || task.task_type === 'detailed');
                 
                 return (
                   <Card
@@ -684,6 +775,69 @@ export default function MyTasksScreen({ navigation }) {
                                   {tag}
                                 </Chip>
                               ))}
+                            </View>
+                          )}
+
+                          {/* Assigned Users */}
+                          {task.assignedUsers && task.assignedUsers.length > 0 && (
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              marginBottom: 8,
+                            }}>
+                              <SolarIcon name="Users" size={14} color={theme.colors.onSurfaceVariant} type="outline" />
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginLeft: -4,
+                              }}>
+                                {task.assignedUsers.slice(0, 4).map((user, userIndex) => (
+                                  <Avatar.Text
+                                    key={userIndex}
+                                    size={24}
+                                    label={user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                                    style={{
+                                      backgroundColor: theme.colors.secondaryContainer,
+                                      marginLeft: userIndex > 0 ? -8 : 0,
+                                      borderWidth: 1.5,
+                                      borderColor: theme.colors.surface,
+                                    }}
+                                    labelStyle={{
+                                      color: theme.colors.onSecondaryContainer,
+                                      fontSize: 10,
+                                    }}
+                                  />
+                                ))}
+                                {task.assignedUsers.length > 4 && (
+                                  <View style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: 12,
+                                    backgroundColor: theme.colors.surfaceVariant,
+                                    borderWidth: 1.5,
+                                    borderColor: theme.colors.surface,
+                                    marginLeft: -8,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                  }}>
+                                    <Text style={{
+                                      fontSize: 9,
+                                      color: theme.colors.onSurfaceVariant,
+                                      fontWeight: '600',
+                                    }}>
+                                      +{task.assignedUsers.length - 4}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={{
+                                fontSize: 11,
+                                color: theme.colors.onSurfaceVariant,
+                                marginLeft: 4,
+                              }}>
+                                {task.assignedUsers.length} người tham gia
+                              </Text>
                             </View>
                           )}
 

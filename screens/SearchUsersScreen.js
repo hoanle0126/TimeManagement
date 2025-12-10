@@ -15,6 +15,9 @@ import {
   ActivityIndicator,
   Card,
   IconButton,
+  Dialog,
+  Portal,
+  Paragraph,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +42,9 @@ export default function SearchUsersScreen({ navigation }) {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [debounceTimer, setDebounceTimer] = useState(null);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
 
   useEffect(() => {
     // Clear results khi unmount
@@ -72,12 +78,16 @@ export default function SearchUsersScreen({ navigation }) {
   const handleSendRequest = async (userId) => {
     try {
       await dispatch(sendFriendRequest(userId)).unwrap();
-      Alert.alert('Thành công', 'Đã gửi lời mời kết bạn');
+      setDialogTitle('Thành công');
+      setDialogMessage('Đã gửi lời mời kết bạn');
+      setDialogVisible(true);
     } catch (error) {
       const errorMessage = typeof error === 'string' 
         ? error 
         : error?.message || 'Không thể gửi lời mời kết bạn';
-      Alert.alert('Lỗi', errorMessage);
+      setDialogTitle('Lỗi');
+      setDialogMessage(errorMessage);
+      setDialogVisible(true);
     }
   };
 
@@ -327,6 +337,35 @@ export default function SearchUsersScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
+
+      {/* Dialog */}
+      <Portal>
+        <Dialog
+          visible={dialogVisible}
+          onDismiss={() => setDialogVisible(false)}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.roundness * 2,
+          }}
+        >
+          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+            {dialogTitle}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Paragraph style={{ color: theme.colors.onSurfaceVariant }}>
+              {dialogMessage}
+            </Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => setDialogVisible(false)}
+              textColor={theme.colors.primary}
+            >
+              OK
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

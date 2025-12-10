@@ -4,9 +4,8 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
-  Alert,
 } from 'react-native';
-import { Text, Avatar, useTheme } from 'react-native-paper';
+import { Text, Avatar, useTheme, Dialog, Portal, Paragraph, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
@@ -20,9 +19,13 @@ import Header from '../components/Header';
 export default function DashboardScreen({ navigation }) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const { todayTasks } = useAppSelector((state) => state.tasks);
+  const { todayTasks, tasks } = useAppSelector((state) => state.tasks);
   const { user } = useAppSelector((state) => state.auth);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
 
   useEffect(() => {
     dispatch(fetchTodayTasks());
@@ -43,35 +46,17 @@ export default function DashboardScreen({ navigation }) {
   const handleMenuPress = (itemId) => {
     switch (itemId) {
       case 'profile':
-        Alert.alert('Chi tiết người dùng', 'Mở màn hình chi tiết người dùng');
+        setDialogTitle('Chi tiết người dùng');
+        setDialogMessage('Mở màn hình chi tiết người dùng');
+        setDialogVisible(true);
         break;
       case 'settings':
-        Alert.alert('Settings', 'Mở màn hình cài đặt');
+        setDialogTitle('Settings');
+        setDialogMessage('Mở màn hình cài đặt');
+        setDialogVisible(true);
         break;
       case 'logout':
-        Alert.alert(
-          'Đăng xuất',
-          'Bạn có chắc chắn muốn đăng xuất?',
-          [
-            { text: 'Hủy', style: 'cancel' },
-            {
-              text: 'Đăng xuất',
-              style: 'destructive',
-              onPress: async () => {
-                console.log('Logout button pressed');
-                try {
-                  await dispatch(logout());
-                  console.log('Logout function completed');
-                  Alert.alert('Đã đăng xuất', 'Bạn đã đăng xuất thành công');
-                } catch (error) {
-                  console.error('Logout error in DashboardScreen:', error);
-                  // Logout vẫn thành công ngay cả khi API có lỗi (token đã hết hạn, etc.)
-                  Alert.alert('Đã đăng xuất', 'Bạn đã đăng xuất thành công');
-                }
-              },
-            },
-          ]
-        );
+        setLogoutDialogVisible(true);
         break;
       default:
         break;
@@ -190,40 +175,80 @@ export default function DashboardScreen({ navigation }) {
                 <TodayTasksWidget navigation={navigation} />
                 {/* Hiển thị TaskProgressWidget cho task chi tiết đầu tiên có đủ thông tin */}
                 {(() => {
-                  // Sử dụng mock data nếu USE_MOCK_DATA = true trong TodayTasksWidget
-                  // Hoặc tìm task detailed đầu tiên có start_date từ Redux
-                  const MOCK_TASKS = [
-                    {
-                      id: 1,
-                      title: 'Hoàn thành báo cáo dự án',
-                      description: 'Viết báo cáo tổng kết dự án TaskManagement và chuẩn bị presentation cho buổi meeting sáng mai',
-                      category: 'Công việc',
-                      progress: 65,
-                      priority: 'high',
-                      status: 'in_progress',
-                      start_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                      due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                      updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                      taskType: 'detailed',
-                      subtasks: [
-                        { id: 1, title: 'Thu thập dữ liệu', completed: true },
-                        { id: 2, title: 'Viết báo cáo', completed: true },
-                        { id: 3, title: 'Chuẩn bị presentation', completed: false },
-                      ],
-                    },
-                  ];
+                  // Mock data để fallback nếu không có task từ API
+                  const MOCK_TASK = {
+                    id: 1,
+                    title: 'Hoàn thành báo cáo dự án',
+                    description: 'Viết báo cáo tổng kết dự án TaskManagement và chuẩn bị presentation cho buổi meeting sáng mai',
+                    category: 'Công việc',
+                    progress: 65,
+                    priority: 'high',
+                    status: 'in_progress',
+                    start_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                    due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                    taskType: 'detailed',
+                    task_type: 'detailed',
+                    assignedUsers: [
+                      { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+                      { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+                    ],
+                    subtasks: [
+                      { 
+                        id: 1, 
+                        title: 'Thu thập dữ liệu', 
+                        completed: true,
+                        assignedUsers: [
+                          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+                        ],
+                      },
+                      { 
+                        id: 2, 
+                        title: 'Viết báo cáo', 
+                        completed: true,
+                        assignedUsers: [
+                          { user_id: 3, name: 'Trần Thị C', email: 'user3@example.com' },
+                        ],
+                      },
+                      { 
+                        id: 3, 
+                        title: 'Chuẩn bị presentation', 
+                        completed: false,
+                        assignedUsers: [
+                          { user_id: 2, name: 'Nguyễn Văn B', email: 'user2@example.com' },
+                          { email: 'external@example.com' },
+                        ],
+                      },
+                    ],
+                  };
                   
-                  // Tìm task detailed đầu tiên có start_date
-                  const detailedTask = todayTasks?.find(
-                    task => task.taskType === 'detailed' && task.start_date
-                  ) || MOCK_TASKS.find(
-                    task => task.taskType === 'detailed' && task.start_date
+                  // Tìm task detailed đầu tiên có start_date từ todayTasks hoặc tasks
+                  const allTasks = [...(todayTasks || []), ...(tasks || [])];
+                  const detailedTask = allTasks.find(
+                    task => {
+                      const isDetailed = (task.taskType === 'detailed' || task.task_type === 'detailed');
+                      const hasStartDate = task.start_date;
+                      console.log('[DashboardScreen] Checking task:', {
+                        id: task.id,
+                        title: task.title,
+                        isDetailed,
+                        hasStartDate,
+                        taskType: task.taskType || task.task_type,
+                        start_date: task.start_date,
+                      });
+                      return isDetailed && hasStartDate;
+                    }
                   );
                   
-                  return detailedTask ? (
-                    <TaskProgressWidget task={detailedTask} />
-                  ) : null;
+                  console.log('[DashboardScreen] Found detailedTask:', detailedTask);
+                  console.log('[DashboardScreen] todayTasks length:', todayTasks?.length);
+                  console.log('[DashboardScreen] tasks length:', tasks?.length);
+                  
+                  // Sử dụng task từ API nếu có, nếu không dùng mock data
+                  const taskToShow = detailedTask || MOCK_TASK;
+                  
+                  return <TaskProgressWidget task={taskToShow} />;
                 })()}
               </View>
 

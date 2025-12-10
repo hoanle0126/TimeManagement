@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\SocketController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\AIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -85,5 +87,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    });
+
+    // Tasks routes
+    Route::prefix('tasks')->group(function () {
+        Route::get('/', [TaskController::class, 'index'])->name('tasks.index');
+        Route::post('/', [TaskController::class, 'store'])->name('tasks.store');
+        Route::get('/{id}', [TaskController::class, 'show'])->name('tasks.show');
+        Route::put('/{id}', [TaskController::class, 'update'])->name('tasks.update');
+        Route::delete('/{id}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    });
+
+    // AI routes
+    Route::prefix('ai')->group(function () {
+        Route::post('/parse-task', [AIController::class, 'parseTask'])->name('ai.parse-task');
+        Route::post('/suggest-priority', [AIController::class, 'suggestPriority'])->name('ai.suggest-priority');
+        Route::post('/categorize-tag', [AIController::class, 'categorizeAndTag'])->name('ai.categorize-tag');
+        Route::post('/breakdown-task', [AIController::class, 'breakDownTask'])->name('ai.breakdown-task');
     });
 });
