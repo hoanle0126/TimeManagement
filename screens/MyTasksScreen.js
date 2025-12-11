@@ -17,13 +17,18 @@ import {
   FAB,
   IconButton,
   Avatar,
+  Menu,
+  Dialog,
+  Portal,
+  Paragraph,
+  Button,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SolarIcon } from 'react-native-solar-icons';
 import Header from '../components/Header';
 import { createShadow } from '../utils/shadow';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchTasks } from '../store/slices/tasksSlice';
+import { fetchTasks, deleteTask, updateTask } from '../store/slices/tasksSlice';
 
 // Mock data để test giao diện
 const MOCK_TASKS = [
@@ -152,6 +157,9 @@ export default function MyTasksScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [menuVisible, setMenuVisible] = useState({});
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -217,6 +225,48 @@ export default function MyTasksScreen({ navigation }) {
       }, 1000);
     }
   }, [dispatch]);
+
+  const handleEditTask = (task) => {
+    setMenuVisible({});
+    navigation?.navigate('CreateTask', { 
+      taskId: task.id,
+      task: task,
+      mode: 'edit'
+    });
+  };
+
+  const handleDeleteTask = (task) => {
+    setMenuVisible({});
+    setTaskToDelete(task);
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDeleteTask = () => {
+    if (taskToDelete) {
+      if (!USE_MOCK_DATA) {
+        dispatch(deleteTask(taskToDelete.id))
+          .then(() => {
+            // Refresh tasks after delete
+            dispatch(fetchTasks());
+          })
+          .catch((error) => {
+            console.error('Error deleting task:', error);
+          });
+      } else {
+        // For mock data, just remove from local state
+        // In real app, this would be handled by Redux
+      }
+      setDeleteDialogVisible(false);
+      setTaskToDelete(null);
+    }
+  };
+
+  const handleMenuPress = (taskId) => {
+    setMenuVisible(prev => ({
+      ...prev,
+      [taskId]: !prev[taskId]
+    }));
+  };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -529,15 +579,33 @@ export default function MyTasksScreen({ navigation }) {
                             </Text>
                           )}
                         </View>
-                        <IconButton
-                          icon="dots-vertical"
-                          iconColor={theme.colors.onSurfaceVariant}
-                          size={20}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            // TODO: Show menu
-                          }}
-                        />
+                        <Menu
+                          visible={menuVisible[task.id] || false}
+                          onDismiss={() => setMenuVisible(prev => ({ ...prev, [task.id]: false }))}
+                          anchor={
+                            <IconButton
+                              icon="dots-vertical"
+                              iconColor={theme.colors.onSurfaceVariant}
+                              size={20}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                handleMenuPress(task.id);
+                              }}
+                            />
+                          }
+                        >
+                          <Menu.Item
+                            onPress={() => handleEditTask(task)}
+                            title="Sửa"
+                            leadingIcon="pencil"
+                          />
+                          <Menu.Item
+                            onPress={() => handleDeleteTask(task)}
+                            title="Xóa"
+                            leadingIcon="delete"
+                            titleStyle={{ color: theme.colors.error }}
+                          />
+                        </Menu>
                       </View>
 
                       {isDetailed ? (
@@ -881,6 +949,38 @@ export default function MyTasksScreen({ navigation }) {
         onPress={() => navigation?.navigate('CreateTask')}
         color={theme.colors.onPrimary}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Portal>
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => {
+            setDeleteDialogVisible(false);
+            setTaskToDelete(null);
+          }}
+        >
+          <Dialog.Title>Xác nhận xóa</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>
+              Bạn có chắc chắn muốn xóa task "{taskToDelete?.title}"? Hành động này không thể hoàn tác.
+            </Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => {
+              setDeleteDialogVisible(false);
+              setTaskToDelete(null);
+            }}>
+              Hủy
+            </Button>
+            <Button 
+              onPress={confirmDeleteTask}
+              textColor={theme.colors.error}
+            >
+              Xóa
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

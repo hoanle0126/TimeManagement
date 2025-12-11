@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -6,6 +6,8 @@ import {
   Dimensions,
   TouchableOpacity,
   TextInput as RNTextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {
   Text,
@@ -14,11 +16,25 @@ import {
   IconButton,
   Chip,
   useTheme,
+  ActivityIndicator,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import { createShadow } from '../utils/shadow';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import {
+  fetchConversations,
+  fetchMessages,
+  sendMessage,
+  createConversation,
+  addMessage,
+  updateConversation,
+  markConversationAsRead,
+  setCurrentConversation,
+} from '../store/slices/messagesSlice';
+import { getFriends } from '../store/slices/friendsSlice';
+import socketService from '../services/socket';
 
 const getIsTablet = () => {
   const { width } = Dimensions.get('window');
@@ -30,74 +46,28 @@ const getIsDesktop = () => {
   return width >= 1024;
 };
 
-// Mock data
-const mockConversations = [
-  {
-    id: 1,
-    name: 'Lọ Vương',
-    lastMessage: ':))',
-    timestamp: '19 phút',
-    unread: false,
-    avatar: null,
-  },
-  {
-    id: 2,
-    name: 'Huy Đặng',
-    lastMessage: 'rất lmew',
-    timestamp: '1 giờ',
-    unread: false,
-    avatar: null,
-  },
-  {
-    id: 3,
-    name: 'Simp Lỏd',
-    lastMessage: 'Bạn: nó đẹp hơn tự làm á:))',
-    timestamp: '4 giờ',
-    unread: true,
-    avatar: null,
-  },
-  {
-    id: 4,
-    name: 'Châu Mẫn',
-    lastMessage: 'Bạn: ukm azir thuần free, swai...',
-    timestamp: '5 giờ',
-    unread: false,
-    avatar: null,
-    online: true,
-  },
-  {
-    id: 5,
-    name: 'Le Hung',
-    lastMessage: 'Bạn đã thu hồi một tin nhắn',
-    timestamp: '7 giờ',
-    unread: false,
-    avatar: null,
-  },
-];
+// Helper function to format timestamp
+const formatTimestamp = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
 
-const mockMessages = [
-  { id: 1, text: 'H ăn nừ', sender: 'other', timestamp: '10:30' },
-  { id: 2, text: 'Nè', sender: 'other', timestamp: '10:31' },
-  { id: 3, text: 'Nấu io', sender: 'other', timestamp: '10:32' },
-  { id: 4, text: 'vl ko', sender: 'me', timestamp: '10:33' },
-  { id: 5, text: 'ít nhất 5h30', sender: 'me', timestamp: '10:34' },
-  {
-    id: 6,
-    text: 'T vừa mới kêu cơm xong ❤️',
-    sender: 'other',
-    timestamp: '10:35',
-  },
-  { id: 7, text: 't ăn trưa khi 2h', sender: 'me', timestamp: '10:36' },
-  {
-    id: 8,
-    text: 'xog 4h30 đi ăn, điên à ba:))',
-    sender: 'me',
-    timestamp: '10:37',
-  },
-  { id: 9, text: 'Rk tí 6h đi ăn ko', sender: 'me', timestamp: '10:38' },
-  { id: 10, text: 'Ko t nấu háy', sender: 'me', timestamp: '10:39' },
-  { id: 11, text: ':))', sender: 'other', timestamp: '10:40' },
-];
+  if (diffMins < 1) return 'Vừa xong';
+  if (diffMins < 60) return `${diffMins} phút`;
+  if (diffHours < 24) return `${diffHours} giờ`;
+  if (diffDays < 7) return `${diffDays} ngày`;
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+};
+
+const formatMessageTime = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
 
 const tabs = [
   { id: 'all', label: 'Tất cả' },
@@ -107,12 +77,24 @@ const tabs = [
 
 export default function MessagesScreen() {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const { friends } = useAppSelector((state) => state.friends);
+  const {
+    conversations,
+    messages,
+    currentConversation,
+    isLoading,
+    isSending,
+  } = useAppSelector((state) => state.messages);
+
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -120,6 +102,67 @@ export default function MessagesScreen() {
     });
     return () => subscription?.remove();
   }, []);
+
+  // Load conversations and friends on mount
+  useEffect(() => {
+    dispatch(fetchConversations());
+    dispatch(getFriends());
+  }, [dispatch]);
+
+  // Connect to socket for real-time messaging
+  useEffect(() => {
+    if (user) {
+      socketService.connect(user.id, {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      });
+
+      // Listen for new messages
+      const handleNewMessage = (data) => {
+        if (data.conversation_id) {
+          dispatch(addMessage({
+            conversationId: data.conversation_id,
+            message: data,
+          }));
+          dispatch(updateConversation({
+            id: data.conversation_id,
+            last_message: data.message || data.text,
+            last_message_at: data.created_at,
+            unread: data.sender_id !== user.id,
+          }));
+        }
+      };
+
+      socketService.on('message:received', handleNewMessage);
+      socketService.on('message:sent', handleNewMessage);
+
+      return () => {
+        socketService.off('message:received', handleNewMessage);
+        socketService.off('message:sent', handleNewMessage);
+      };
+    }
+  }, [user, dispatch]);
+
+  // Load messages when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      // Chỉ fetch messages nếu conversation ID không phải là friend-X (tạm thời)
+      // Vì backend API chưa có, nên skip fetch cho conversations từ friends
+      if (!selectedConversation.toString().startsWith('friend-')) {
+        dispatch(fetchMessages(selectedConversation));
+      }
+      dispatch(setCurrentConversation(selectedConversation));
+      dispatch(markConversationAsRead(selectedConversation));
+      
+      // Join conversation room for real-time updates
+      socketService.joinRoom(`conversation:${selectedConversation}`);
+      
+      return () => {
+        socketService.leaveRoom(`conversation:${selectedConversation}`);
+      };
+    }
+  }, [selectedConversation, dispatch]);
 
   const { width } = dimensions;
   const isTablet = width >= 768;
@@ -135,12 +178,59 @@ export default function MessagesScreen() {
     }
   }, [isMobile, isTablet, isDesktop, selectedConversation]);
 
-  const selectedConv = mockConversations.find((c) => c.id === selectedConversation);
+  const selectedConv = conversations.find((c) => c.id === selectedConversation);
+  const currentMessages = selectedConversation ? (messages[selectedConversation] || []) : [];
 
   const handleConversationSelect = (id) => {
     setSelectedConversation(id);
     if (isMobile) {
       setShowSidebar(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !selectedConversation) return;
+
+    const text = messageText.trim();
+    setMessageText('');
+
+    try {
+      const conv = conversations.find(c => c.id === selectedConversation);
+      const recipientId = conv?.participant?.id || conv?.friend_id;
+      
+      await dispatch(sendMessage({
+        conversationId: selectedConversation,
+        message: text,
+        recipientId: recipientId,
+      })).unwrap();
+
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Emit socket event for real-time
+      socketService.emit('message:send', {
+        conversation_id: selectedConversation,
+        recipient_id: recipientId,
+        message: text,
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Restore message text on error
+      setMessageText(text);
+    }
+  };
+
+  const handleStartConversation = async (friendId) => {
+    try {
+      const result = await dispatch(createConversation(friendId)).unwrap();
+      setSelectedConversation(result.id);
+      if (isMobile) {
+        setShowSidebar(false);
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error);
     }
   };
 
@@ -382,12 +472,33 @@ export default function MessagesScreen() {
     },
   });
 
-  const filteredConversations = mockConversations.filter((conv) => {
+  // Create conversations from friends if no conversations exist
+  const conversationsFromFriends = friends.map(friend => ({
+    id: `friend-${friend.id}`,
+    name: friend.name,
+    lastMessage: null,
+    last_message_at: null,
+    unread: false,
+    unread_count: 0,
+    participant: friend,
+    friend_id: friend.id,
+    isFriend: true,
+  }));
+
+  // Combine API conversations with friends (remove duplicates)
+  const allConversations = [
+    ...conversations,
+    ...conversationsFromFriends.filter(
+      friendConv => !conversations.find(c => c.friend_id === friendConv.friend_id)
+    ),
+  ];
+
+  const filteredConversations = allConversations.filter((conv) => {
     if (searchQuery) {
-      return conv.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return conv.name?.toLowerCase().includes(searchQuery.toLowerCase());
     }
     if (activeTab === 'unread') {
-      return conv.unread;
+      return conv.unread || conv.unread_count > 0;
     }
     return true;
   });
@@ -395,6 +506,11 @@ export default function MessagesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
       <View style={styles.content}>
         {/* Sidebar */}
         <View style={styles.sidebar}>
@@ -493,7 +609,9 @@ export default function MessagesScreen() {
                     >
                       {conv.name}
                     </Text>
-                    <Text style={styles.conversationTime}>{conv.timestamp}</Text>
+                    <Text style={styles.conversationTime}>
+                      {formatTimestamp(conv.last_message_at || conv.timestamp)}
+                    </Text>
                   </View>
                   <Text
                     style={[
@@ -502,7 +620,7 @@ export default function MessagesScreen() {
                     ]}
                     numberOfLines={1}
                   >
-                    {conv.lastMessage}
+                    {conv.last_message || conv.lastMessage || 'Chưa có tin nhắn'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -540,7 +658,7 @@ export default function MessagesScreen() {
                   <View style={styles.chatHeaderText}>
                     <Text style={styles.chatHeaderName}>{selectedConv.name}</Text>
                     <Text style={styles.chatHeaderStatus}>
-                      Hoạt động {selectedConv.timestamp} trước
+                      {selectedConv.online ? 'Đang hoạt động' : `Hoạt động ${formatTimestamp(selectedConv.last_message_at || selectedConv.timestamp)} trước`}
                     </Text>
                   </View>
                 </View>
@@ -566,45 +684,56 @@ export default function MessagesScreen() {
                 </View>
               </View>
 
-              <ScrollView style={styles.messagesContainer}>
-                <View style={styles.pinnedMessage}>
-                  <Ionicons
-                    name="pin"
-                    size={16}
-                    color={theme.colors.onSurfaceVariant}
-                    style={styles.pinnedIcon}
-                  />
-                  <Text style={styles.pinnedText}>Kickyourassup1</Text>
-                </View>
-
-                {mockMessages.map((msg) => (
-                  <View
-                    key={msg.id}
-                    style={[
-                      styles.messageBubble,
-                      msg.sender === 'me'
-                        ? styles.messageBubbleMe
-                        : styles.messageBubbleOther,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.messageText,
-                        msg.sender === 'me' && styles.messageTextMe,
-                      ]}
-                    >
-                      {msg.text}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.messageTime,
-                        msg.sender === 'me' && styles.messageTimeMe,
-                      ]}
-                    >
-                      {msg.timestamp}
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.messagesContainer}
+                onContentSizeChange={() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }}
+              >
+                {isLoading && currentMessages.length === 0 ? (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                  </View>
+                ) : currentMessages.length === 0 ? (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                      Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
                     </Text>
                   </View>
-                ))}
+                ) : (
+                  currentMessages.map((msg) => {
+                    const isMe = msg.sender_id === user?.id || msg.sender === 'me';
+                    return (
+                      <View
+                        key={msg.id}
+                        style={[
+                          styles.messageBubble,
+                          isMe
+                            ? styles.messageBubbleMe
+                            : styles.messageBubbleOther,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.messageText,
+                            isMe && styles.messageTextMe,
+                          ]}
+                        >
+                          {msg.message || msg.text}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.messageTime,
+                            isMe && styles.messageTimeMe,
+                          ]}
+                        >
+                          {formatMessageTime(msg.created_at || msg.timestamp)}
+                        </Text>
+                      </View>
+                    );
+                  })
+                )}
               </ScrollView>
 
               <View style={styles.inputContainer}>
@@ -635,20 +764,34 @@ export default function MessagesScreen() {
                   value={messageText}
                   onChangeText={setMessageText}
                   multiline
+                  onSubmitEditing={handleSendMessage}
+                  editable={!isSending}
                 />
                 <View style={styles.inputActions}>
-                  <IconButton
-                    icon="emoticon"
-                    iconColor={theme.colors.onSurfaceVariant}
-                    size={20}
-                    onPress={() => {}}
-                  />
-                  <IconButton
-                    icon="thumb-up"
-                    iconColor={theme.colors.onSurfaceVariant}
-                    size={20}
-                    onPress={() => {}}
-                  />
+                  {messageText.trim() ? (
+                    <IconButton
+                      icon="send"
+                      iconColor={theme.colors.primary}
+                      size={20}
+                      onPress={handleSendMessage}
+                      disabled={isSending}
+                    />
+                  ) : (
+                    <>
+                      <IconButton
+                        icon="emoticon"
+                        iconColor={theme.colors.onSurfaceVariant}
+                        size={20}
+                        onPress={() => {}}
+                      />
+                      <IconButton
+                        icon="thumb-up"
+                        iconColor={theme.colors.onSurfaceVariant}
+                        size={20}
+                        onPress={() => {}}
+                      />
+                    </>
+                  )}
                 </View>
               </View>
             </>
@@ -661,6 +804,7 @@ export default function MessagesScreen() {
           )}
         </View>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

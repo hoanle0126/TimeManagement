@@ -25,7 +25,7 @@ import UserSelector from '../components/UserSelector';
 import AIAssistant from '../components/AIAssistant';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { getFriends } from '../store/slices/friendsSlice';
-import { createTask } from '../store/slices/tasksSlice';
+import { createTask, updateTask, fetchTask } from '../store/slices/tasksSlice';
 import { 
   parseTask, 
   suggestPriority, 
@@ -41,7 +41,13 @@ export default function CreateTaskScreen({ navigation, route }) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { friends } = useAppSelector((state) => state.friends);
+  const { currentTask } = useAppSelector((state) => state.tasks);
   const [mode, setMode] = useState('quick'); // 'quick' or 'detailed'
+  
+  // Edit mode state
+  const taskId = route?.params?.taskId;
+  const isEditMode = !!taskId;
+  const taskData = route?.params?.task || currentTask;
   
   // Quick Add fields
   const [taskTitle, setTaskTitle] = useState('');
@@ -98,6 +104,105 @@ export default function CreateTaskScreen({ navigation, route }) {
       dispatch(clearAI());
     };
   }, [dispatch]);
+
+  // Load task data if in edit mode
+  React.useEffect(() => {
+    if (isEditMode && taskId) {
+      if (taskData) {
+        // Pre-fill form with task data
+        setTaskTitle(taskData.title || '');
+        setTaskDescription(taskData.description || '');
+        setPriority(taskData.priority || 'medium');
+        setTags(taskData.tags || []);
+        setCategory(taskData.category || '');
+        setStatus(taskData.status || 'pending');
+        setProgress(taskData.progress || 0);
+        setAssignedUsers(taskData.assignedUsers || []);
+        
+        // Set dates
+        if (taskData.deadline) {
+          setDeadline(new Date(taskData.deadline));
+        } else if (taskData.due_date) {
+          setDeadline(new Date(taskData.due_date));
+        }
+        if (taskData.start_date) {
+          setStartDate(new Date(taskData.start_date));
+        }
+        if (taskData.due_date) {
+          setDueDate(new Date(taskData.due_date));
+        }
+        
+        // Set mode based on task type
+        if (taskData.taskType === 'detailed' || taskData.task_type === 'detailed') {
+          setMode('detailed');
+        } else {
+          setMode('quick');
+        }
+        
+        // Set subtasks
+        if (taskData.subtasks && taskData.subtasks.length > 0) {
+          setSubtasks(taskData.subtasks.map((st, index) => ({
+            id: st.id || Date.now() + index,
+            title: st.title || '',
+            description: st.description || '',
+            deadline: st.deadline ? new Date(st.deadline) : null,
+            priority: st.priority || 'medium',
+            tags: st.tags || [],
+            assignedUsers: st.assignedUsers || [],
+            completed: st.completed || false,
+          })));
+        }
+      } else {
+        // Fetch task from API
+        dispatch(fetchTask(taskId));
+      }
+    }
+  }, [isEditMode, taskId, taskData, dispatch]);
+
+  // Update form when currentTask is loaded from API
+  React.useEffect(() => {
+    if (isEditMode && currentTask && currentTask.id === taskId) {
+      setTaskTitle(currentTask.title || '');
+      setTaskDescription(currentTask.description || '');
+      setPriority(currentTask.priority || 'medium');
+      setTags(currentTask.tags || []);
+      setCategory(currentTask.category || '');
+      setStatus(currentTask.status || 'pending');
+      setProgress(currentTask.progress || 0);
+      setAssignedUsers(currentTask.assignedUsers || []);
+      
+      if (currentTask.deadline) {
+        setDeadline(new Date(currentTask.deadline));
+      } else if (currentTask.due_date) {
+        setDeadline(new Date(currentTask.due_date));
+      }
+      if (currentTask.start_date) {
+        setStartDate(new Date(currentTask.start_date));
+      }
+      if (currentTask.due_date) {
+        setDueDate(new Date(currentTask.due_date));
+      }
+      
+      if (currentTask.taskType === 'detailed' || currentTask.task_type === 'detailed') {
+        setMode('detailed');
+      } else {
+        setMode('quick');
+      }
+      
+      if (currentTask.subtasks && currentTask.subtasks.length > 0) {
+        setSubtasks(currentTask.subtasks.map((st, index) => ({
+          id: st.id || Date.now() + index,
+          title: st.title || '',
+          description: st.description || '',
+          deadline: st.deadline ? new Date(st.deadline) : null,
+          priority: st.priority || 'medium',
+          tags: st.tags || [],
+          assignedUsers: st.assignedUsers || [],
+          completed: st.completed || false,
+        })));
+      }
+    }
+  }, [isEditMode, currentTask, taskId]);
 
   // Auto-fill form when AI parses task
   React.useEffect(() => {
@@ -354,13 +459,21 @@ export default function CreateTaskScreen({ navigation, route }) {
     };
 
     try {
-      // Dispatch createTask action
-      const result = await dispatch(createTask(taskData));
+      let result;
+      if (isEditMode && taskId) {
+        // Update existing task
+        result = await dispatch(updateTask({ taskId, taskData }));
+      } else {
+        // Create new task
+        result = await dispatch(createTask(taskData));
+      }
       
-      if (createTask.fulfilled.match(result)) {
+      const actionType = isEditMode ? updateTask : createTask;
+      
+      if (actionType.fulfilled.match(result)) {
         // Success - navigate to Home
         setDialogTitle('Thành công');
-        setDialogMessage('Task đã được tạo thành công!');
+        setDialogMessage(isEditMode ? 'Task đã được cập nhật thành công!' : 'Task đã được tạo thành công!');
         setDialogType('success');
         setDialogOnConfirm(() => () => {
           setDialogVisible(false);
@@ -370,7 +483,8 @@ export default function CreateTaskScreen({ navigation, route }) {
         setDialogVisible(true);
       } else {
         // Error
-        const errorMessage = result.payload?.message || result.payload?.error || 'Không thể tạo task. Vui lòng thử lại.';
+        const errorMessage = result.payload?.message || result.payload?.error || 
+          (isEditMode ? 'Không thể cập nhật task. Vui lòng thử lại.' : 'Không thể tạo task. Vui lòng thử lại.');
         setDialogTitle('Lỗi');
         setDialogMessage(errorMessage);
         setDialogType('error');
@@ -380,7 +494,7 @@ export default function CreateTaskScreen({ navigation, route }) {
     } catch (error) {
       console.error('[CreateTaskScreen] handleSave error:', error);
       setDialogTitle('Lỗi');
-      setDialogMessage('Đã xảy ra lỗi khi tạo task. Vui lòng thử lại.');
+      setDialogMessage(isEditMode ? 'Đã xảy ra lỗi khi cập nhật task. Vui lòng thử lại.' : 'Đã xảy ra lỗi khi tạo task. Vui lòng thử lại.');
       setDialogType('error');
       setDialogOnConfirm(() => () => setDialogVisible(false));
       setDialogVisible(true);
@@ -428,7 +542,7 @@ export default function CreateTaskScreen({ navigation, route }) {
           fontWeight: '600',
           color: theme.colors.onSurface,
         }}>
-          Tạo Task Mới
+          {isEditMode ? 'Sửa Task' : 'Tạo Task Mới'}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -1398,7 +1512,7 @@ export default function CreateTaskScreen({ navigation, route }) {
               borderRadius: theme.roundness,
             }}
           >
-            Lưu Task
+            {isEditMode ? 'Cập nhật Task' : 'Lưu Task'}
           </Button>
         </View>
       </ScrollView>

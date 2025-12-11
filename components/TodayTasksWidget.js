@@ -5,6 +5,7 @@ import { SolarIcon } from 'react-native-solar-icons';
 import { createShadow } from '../utils/shadow';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTodayTasks } from '../store/slices/tasksSlice';
+import mockTasksData from '../data/mockTasks.json';
 
 const getIsTablet = () => {
   const { width } = Dimensions.get('window');
@@ -72,7 +73,7 @@ const MOCK_TASKS = [
   },
 ];
 
-// Flag để bật/tắt mock data (đặt true để dùng mock data, false để dùng data từ API)
+// Flag để bật/tắt mock data (đặt true để dùng mock data từ JSON, false để dùng data từ API)
 const USE_MOCK_DATA = false;
 
 export default function TodayTasksWidget({ navigation }) {
@@ -80,14 +81,49 @@ export default function TodayTasksWidget({ navigation }) {
   const dispatch = useAppDispatch();
   const { todayTasks, isLoading, error } = useAppSelector((state) => state.tasks);
   const [alertVisible, setAlertVisible] = useState(true);
+  const [mockTasks, setMockTasks] = useState([]);
   const isTablet = getIsTablet();
 
-  // Sử dụng mock data nếu bật flag hoặc không có data từ API
-  const displayTasks = USE_MOCK_DATA ? MOCK_TASKS : todayTasks;
+  // Load mock data từ JSON nếu USE_MOCK_DATA = true
+  useEffect(() => {
+    if (USE_MOCK_DATA && mockTasksData && Array.isArray(mockTasksData)) {
+      // Lấy tất cả tasks từ JSON (vì dates trong JSON là cố định)
+      // Hoặc có thể filter theo logic "today" nếu cần
+      const today = new Date().toISOString().split('T')[0];
+      const filteredTasks = mockTasksData.filter(task => {
+        // Tasks có due_date = hôm nay
+        if (task.due_date) {
+          const taskDate = new Date(task.due_date).toISOString().split('T')[0];
+          if (taskDate === today) return true;
+        }
+        // Tasks không có due_date và chưa hoàn thành (pending tasks)
+        if (!task.due_date && task.status && !['completed', 'cancelled'].includes(task.status)) {
+          return true;
+        }
+        // Tasks được tạo hôm nay
+        if (task.created_at) {
+          const createdDate = new Date(task.created_at).toISOString().split('T')[0];
+          if (createdDate === today) return true;
+        }
+        return false;
+      });
+      
+      // Nếu không có task nào match với hôm nay, lấy 2 tasks đầu tiên để demo
+      const tasksToShow = filteredTasks.length > 0 ? filteredTasks : mockTasksData.slice(0, 2);
+      
+      console.log('[TodayTasksWidget] Loaded mock tasks from JSON:', tasksToShow);
+      setMockTasks(tasksToShow);
+    }
+  }, []);
+
+  // Sử dụng mock data từ JSON nếu bật flag, nếu không dùng data từ API
+  const displayTasks = USE_MOCK_DATA ? mockTasks : todayTasks;
   const displayLoading = USE_MOCK_DATA ? false : isLoading;
 
   useEffect(() => {
-    dispatch(fetchTodayTasks());
+    if (!USE_MOCK_DATA) {
+      dispatch(fetchTodayTasks());
+    }
   }, [dispatch]);
 
   // Debug: Log todayTasks to see what we're getting

@@ -7,6 +7,7 @@ use App\Http\Controllers\FriendController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\AIController;
+use App\Http\Controllers\MessageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -104,5 +105,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/suggest-priority', [AIController::class, 'suggestPriority'])->name('ai.suggest-priority');
         Route::post('/categorize-tag', [AIController::class, 'categorizeAndTag'])->name('ai.categorize-tag');
         Route::post('/breakdown-task', [AIController::class, 'breakDownTask'])->name('ai.breakdown-task');
+    });
+
+    // Messages routes
+    Route::prefix('messages')->group(function () {
+        Route::get('/conversations', [MessageController::class, 'getConversations'])->name('messages.conversations');
+        Route::post('/conversations', [MessageController::class, 'createConversation'])->name('messages.create-conversation');
+        Route::get('/conversations/{id}/messages', [MessageController::class, 'getMessages'])->name('messages.get-messages');
+        Route::post('/', [MessageController::class, 'sendMessage'])->name('messages.send');
     });
 });

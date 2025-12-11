@@ -1,115 +1,187 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Dimensions, TouchableOpacity } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { SolarIcon } from 'react-native-solar-icons';
 import { createShadow } from '../utils/shadow';
+import { useAppSelector } from '../store/hooks';
+import DateTimePickerModal from './DateTimePickerModal';
 
-export default function TaskProgressWidget({ task }) {
+// Flag để bật/tắt mock data từ JSON (true = dùng JSON, false = dùng data từ backend)
+const USE_MOCK_DATA = false;
+
+export default function TaskProgressWidget({ task: propTask }) {
   const theme = useTheme();
   const { width } = Dimensions.get('window');
   const isTablet = width >= 768;
   const maxHeight = 120;
-  const maxValue = 100;
 
-  // Tính toán progress data từ task
-  const generateProgressData = () => {
-    const isDetailed = task?.taskType === 'detailed' || task?.task_type === 'detailed';
-    if (!task || !isDetailed || !task.start_date) {
-      return [];
-    }
+  // State cho date picker
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-    const today = new Date();
-    const startDate = new Date(task.start_date);
-    const dueDate = task.due_date ? new Date(task.due_date) : null;
-    const currentProgress = task.progress || 0;
+  // Lấy tasks từ Redux state (backend)
+  const { todayTasks, tasks } = useAppSelector((state) => state.tasks);
+
+  // Tạo mock data động dựa trên tuần của selectedDate
+  const generateMockTasks = React.useMemo(() => {
+    if (!USE_MOCK_DATA) return [];
     
-    // Tạo dữ liệu cho 7 ngày gần nhất (3 ngày trước, hôm nay, 3 ngày sau)
-    const progressData = [];
+    const selected = new Date(selectedDate);
+    const dayOfWeek = selected.getDay(); // 0 = Chủ nhật, 1 = Thứ 2, ...
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(selected);
+    monday.setDate(selected.getDate() + mondayOffset);
     
-    for (let i = -3; i <= 3; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      const day = date.getDate();
-      
-      // Tính progress ước tính cho ngày đó
-      let estimatedProgress = 0;
-      let change = 0;
-      let color = 'success';
-      
-      if (i < 0) {
-        // Ngày trong quá khứ - tính dựa trên timeline
-        const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-        const totalDays = dueDate 
-          ? Math.floor((dueDate - startDate) / (1000 * 60 * 60 * 24))
-          : 7;
-        
-        if (daysSinceStart >= 0 && totalDays > 0) {
-          estimatedProgress = Math.min(100, Math.max(0, (daysSinceStart / totalDays) * 100));
-        }
-        change = i === -1 ? 5 : Math.floor(Math.random() * 10) + 1;
-      } else if (i === 0) {
-        // Hôm nay - dùng progress thực tế
-        estimatedProgress = currentProgress;
-        change = 8; // Mức tăng ước tính
-      } else {
-        // Ngày tương lai - ước tính dựa trên tốc độ hiện tại
-        const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-        const totalDays = dueDate 
-          ? Math.floor((dueDate - startDate) / (1000 * 60 * 60 * 24))
-          : 7;
-        
-        if (daysSinceStart >= 0 && totalDays > 0) {
-          estimatedProgress = Math.min(100, Math.max(currentProgress, (daysSinceStart / totalDays) * 100));
-        } else {
-          estimatedProgress = currentProgress;
-        }
-        change = Math.floor(Math.random() * 8) + 3;
-      }
-      
-      // Xác định màu dựa trên tốc độ
-      if (change >= 10) {
-        color = 'warning';
-      } else {
-        color = 'success';
-      }
-      
-      progressData.push({
-        day,
-        value: i === 0 ? estimatedProgress : null,
-        change,
-        color,
-        isCurrent: i === 0,
+    // Tính các ngày trong tuần
+    const tuesday = new Date(monday); // Thứ 2 (i=0)
+    tuesday.setDate(monday.getDate() + 0);
+    const friday = new Date(monday); // Thứ 5 (i=3)
+    friday.setDate(monday.getDate() + 3);
+    const saturday = new Date(monday); // Thứ 6 (i=4)
+    saturday.setDate(monday.getDate() + 4);
+    
+    // Format dates
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0] + 'T00:00:00.000Z';
+    };
+    
+    const mockTasks = [];
+    
+    // Thứ 2: 3 tasks
+    for (let i = 1; i <= 3; i++) {
+      mockTasks.push({
+        id: `monday-${i}`,
+        title: `Task hoàn thành thứ 2 - ${i}`,
+        description: `Task mẫu hoàn thành vào thứ 2`,
+        category: 'Công việc',
+        progress: 100,
+        priority: i === 1 ? 'high' : i === 2 ? 'medium' : 'low',
+        status: 'completed',
+        start_date: formatDate(new Date(tuesday.getTime() - 7 * 24 * 60 * 60 * 1000)),
+        due_date: formatDate(new Date(tuesday.getTime() + 7 * 24 * 60 * 60 * 1000)),
+        created_at: formatDate(new Date(tuesday.getTime() - 14 * 24 * 60 * 60 * 1000)),
+        updated_at: formatDate(tuesday),
+        taskType: i % 2 === 0 ? 'quick' : 'detailed',
+        task_type: i % 2 === 0 ? 'quick' : 'detailed',
+        assignedUsers: [],
       });
     }
     
-    return progressData;
-  };
-
-  const progressData = generateProgressData();
-
-  const getColor = (colorType) => {
-    switch (colorType) {
-      case 'success':
-        return theme.colors.success || '#4CAF50';
-      case 'warning':
-        return theme.colors.warning || '#FF9800';
-      default:
-        return theme.colors.primary;
+    // Thứ 5: 7 tasks
+    for (let i = 1; i <= 7; i++) {
+      mockTasks.push({
+        id: `friday-${i}`,
+        title: `Task hoàn thành thứ 5 - ${i}`,
+        description: `Task mẫu hoàn thành vào thứ 5`,
+        category: 'Công việc',
+        progress: 100,
+        priority: i % 3 === 0 ? 'high' : i % 3 === 1 ? 'medium' : 'low',
+        status: 'completed',
+        start_date: formatDate(new Date(friday.getTime() - 7 * 24 * 60 * 60 * 1000)),
+        due_date: formatDate(new Date(friday.getTime() + 7 * 24 * 60 * 60 * 1000)),
+        created_at: formatDate(new Date(friday.getTime() - 14 * 24 * 60 * 60 * 1000)),
+        updated_at: formatDate(friday),
+        taskType: i % 2 === 0 ? 'quick' : 'detailed',
+        task_type: i % 2 === 0 ? 'quick' : 'detailed',
+        assignedUsers: [],
+      });
     }
+    
+    // Thứ 6: 1 task
+    mockTasks.push({
+      id: 'saturday-1',
+      title: 'Task hoàn thành thứ 6 - 1',
+      description: 'Task mẫu hoàn thành vào thứ 6',
+      category: 'Công việc',
+      progress: 100,
+      priority: 'high',
+      status: 'completed',
+      start_date: formatDate(new Date(saturday.getTime() - 7 * 24 * 60 * 60 * 1000)),
+      due_date: formatDate(new Date(saturday.getTime() + 7 * 24 * 60 * 60 * 1000)),
+      created_at: formatDate(new Date(saturday.getTime() - 14 * 24 * 60 * 60 * 1000)),
+      updated_at: formatDate(saturday),
+      taskType: 'detailed',
+      task_type: 'detailed',
+      assignedUsers: [],
+    });
+    
+    return mockTasks;
+  }, [selectedDate]);
+
+  // Lấy tất cả tasks để đếm completed tasks
+  const allTasks = React.useMemo(() => {
+    if (USE_MOCK_DATA) {
+      return generateMockTasks;
+    }
+    return [...(todayTasks || []), ...(tasks || [])];
+  }, [todayTasks, tasks, USE_MOCK_DATA, generateMockTasks]);
+
+  // Tính toán 7 ngày trong tuần (thứ 2 đến chủ nhật) dựa trên selectedDate
+  const generateWeekData = () => {
+    const weekData = [];
+    const selected = new Date(selectedDate);
+    
+    // Tìm thứ 2 của tuần chứa selectedDate
+    const dayOfWeek = selected.getDay(); // 0 = Chủ nhật, 1 = Thứ 2, ...
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Điều chỉnh để thứ 2 = 0
+    const monday = new Date(selected);
+    monday.setDate(selected.getDate() + mondayOffset);
+    
+    // Tạo 7 ngày từ thứ 2 đến chủ nhật
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      
+      // Đếm số task completed trong ngày này
+      const dateStr = date.toISOString().split('T')[0];
+      const completedCount = allTasks.filter(task => {
+        if (task.status !== 'completed') return false;
+        
+        // Kiểm tra updated_at hoặc completed_at
+        if (task.updated_at) {
+          const taskDate = new Date(task.updated_at).toISOString().split('T')[0];
+          return taskDate === dateStr;
+        }
+        return false;
+      }).length;
+      
+      // Kiểm tra xem có phải ngày được chọn không
+      const isSelected = date.toDateString() === selected.toDateString();
+      
+      weekData.push({
+        date: new Date(date),
+        day: date.getDate(),
+        dayOfWeek: i, // 0 = Thứ 2, 6 = Chủ nhật
+        completedCount,
+        isSelected,
+      });
+    }
+    
+    return weekData;
   };
 
-  // Nếu không có task hoặc không phải task chi tiết, không hiển thị
-  const isDetailed = task?.taskType === 'detailed' || task?.task_type === 'detailed';
-  if (!task || !isDetailed || progressData.length === 0) {
-    console.log('[TaskProgressWidget] Not rendering:', {
-      hasTask: !!task,
-      isDetailed,
-      progressDataLength: progressData.length,
-      taskType: task?.taskType || task?.task_type,
-      start_date: task?.start_date,
+  const weekData = generateWeekData();
+  
+  // Tên thứ trong tuần
+  const dayNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+  // Format ngày tháng năm
+  const formatDate = (date) => {
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     });
-    return null;
-  }
+  };
+
+  // Tính chiều cao cột dựa trên số task hoàn thành (chỉ tính từ những ngày có task)
+  const getMaxCompletedCount = () => {
+    const tasksDays = weekData.filter(d => d.completedCount > 0);
+    if (tasksDays.length === 0) return 1;
+    return Math.max(1, ...tasksDays.map(d => d.completedCount));
+  };
+
+  const maxCompletedCount = getMaxCompletedCount();
 
   const cardShadow = createShadow({
     color: theme.colors.shadow,
@@ -118,22 +190,6 @@ export default function TaskProgressWidget({ task }) {
     radius: 8,
     elevation: 3,
   });
-
-  // Tính toán thông điệp động viên
-  const getProgressMessage = () => {
-    const progress = task.progress || 0;
-    if (progress >= 80) {
-      return { icon: 'Like', message: 'Tiến độ rất tốt! Bạn đang làm rất tốt! 🎉', color: theme.colors.success || '#4CAF50' };
-    } else if (progress >= 50) {
-      return { icon: 'Like', message: 'Tiến độ tốt, tiếp tục phát huy! 👍', color: theme.colors.success || '#4CAF50' };
-    } else if (progress >= 25) {
-      return { icon: 'Info', message: 'Đang có tiến độ, cố gắng thêm nhé! 💪', color: theme.colors.warning || '#FF9800' };
-    } else {
-      return { icon: 'Alert', message: 'Hãy bắt đầu làm việc để có tiến độ! 🚀', color: theme.colors.warning || '#FF9800' };
-    }
-  };
-
-  const progressMessage = getProgressMessage();
 
   return (
     <View style={{ marginBottom: 16 }}>
@@ -166,7 +222,7 @@ export default function TaskProgressWidget({ task }) {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => {}}
+              onPress={() => setShowDatePicker(true)}
               style={{ padding: 4 }}
             >
               <SolarIcon name="MenuDots" size={20} color={theme.colors.onSurfaceVariant} type="outline" />
@@ -181,11 +237,20 @@ export default function TaskProgressWidget({ task }) {
               height: 140,
               paddingBottom: 30,
             }}>
-              {progressData.map((item, index) => {
-                const height = item.value 
-                  ? (item.value / maxValue) * maxHeight 
-                  : Math.max(8, (item.change / 20) * maxHeight);
-                const color = getColor(item.color);
+              {weekData.map((item, index) => {
+                // Tính chiều cao cột dựa trên số task hoàn thành
+                const height = item.completedCount > 0 && maxCompletedCount > 0
+                  ? Math.max(8, (item.completedCount / maxCompletedCount) * maxHeight)
+                  : 0;
+                
+                // Màu: ngày được chọn = đen, còn lại = xanh lá
+                const backgroundColor = item.isSelected 
+                  ? '#000000' 
+                  : (theme.colors.success || '#4CAF50');
+                
+                const textColor = item.isSelected 
+                  ? '#FFFFFF' 
+                  : theme.colors.onSurface;
                 
                 return (
                   <View key={index} style={{
@@ -193,48 +258,8 @@ export default function TaskProgressWidget({ task }) {
                     alignItems: 'center',
                     justifyContent: 'flex-end',
                   }}>
-                    {item.isCurrent ? (
-                      <View style={{
-                        alignItems: 'center',
-                        width: '100%',
-                      }}>
-                        <View style={[
-                          {
-                            width: '80%',
-                            borderRadius: theme.roundness,
-                            alignItems: 'center',
-                            justifyContent: 'flex-start',
-                            paddingTop: 8,
-                            marginBottom: 4,
-                            height: height + 20,
-                            backgroundColor: theme.colors.inverseSurface,
-                          }
-                        ]}>
-                          <Text style={{
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            marginBottom: 4,
-                            color: theme.colors.inverseOnSurface,
-                          }}>
-                            {Math.round(item.value)}%
-                          </Text>
-                          <View style={{
-                            paddingHorizontal: 6,
-                            paddingVertical: 2,
-                            borderRadius: 4,
-                            backgroundColor: theme.colors.warning || '#FF9800',
-                          }}>
-                            <Text style={{
-                              fontSize: 10,
-                              fontWeight: 'bold',
-                              color: theme.colors.onWarning || theme.colors.onSurface,
-                            }}>
-                              +{item.change}%
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    ) : (
+                    {/* Chỉ hiển thị cột nếu có task hoàn thành */}
+                    {item.completedCount > 0 ? (
                       <View style={{
                         alignItems: 'center',
                         width: '100%',
@@ -245,24 +270,42 @@ export default function TaskProgressWidget({ task }) {
                           borderRadius: 4,
                           marginBottom: 4,
                           height: height,
-                          backgroundColor: color,
-                        }} />
-                        <Text style={{
-                          fontSize: 10,
-                          fontWeight: '600',
-                          marginBottom: 4,
-                          color: color,
+                          backgroundColor: backgroundColor,
+                          justifyContent: 'center',
+                          alignItems: 'center',
                         }}>
-                          +{item.change}%
-                        </Text>
+                          <Text style={{
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            color: textColor,
+                          }}>
+                            {item.completedCount}
+                          </Text>
+                        </View>
                       </View>
+                    ) : (
+                      <View style={{
+                        width: '100%',
+                        height: 8,
+                        marginBottom: 4,
+                      }} />
                     )}
                     <Text style={{
-                      fontSize: 12,
+                      fontSize: 10,
+                      fontWeight: '600',
                       color: theme.colors.onSurfaceVariant,
                       marginTop: 4,
+                      textAlign: 'center',
                     }}>
-                      {item.day}
+                      {dayNames[item.dayOfWeek]}
+                    </Text>
+                    <Text style={{
+                      fontSize: 8,
+                      color: theme.colors.onSurfaceVariant,
+                      marginTop: 2,
+                      textAlign: 'center',
+                    }}>
+                      {formatDate(item.date)}
                     </Text>
                   </View>
                 );
@@ -278,14 +321,14 @@ export default function TaskProgressWidget({ task }) {
             padding: 16,
             gap: 12,
           }}>
-            <SolarIcon name={progressMessage.icon} size={20} color={progressMessage.color} type="bold" />
+            <SolarIcon name="CheckCircle" size={20} color={theme.colors.success || '#4CAF50'} type="bold" />
             <Text style={{
               flex: 1,
               fontSize: 14,
               color: theme.colors.onSurfaceVariant,
               fontWeight: '500',
             }}>
-              {progressMessage.message}
+              Tổng cộng {weekData.reduce((sum, d) => sum + d.completedCount, 0)} task đã hoàn thành trong tuần này
             </Text>
             <TouchableOpacity
               onPress={() => {}}
@@ -296,6 +339,18 @@ export default function TaskProgressWidget({ task }) {
           </View>
         </Card.Content>
       </Card>
+
+      {/* Date Picker Modal */}
+      <DateTimePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={(date) => {
+          setSelectedDate(date);
+          setShowDatePicker(false);
+        }}
+        value={selectedDate}
+        title="Chọn ngày"
+      />
     </View>
   );
 }

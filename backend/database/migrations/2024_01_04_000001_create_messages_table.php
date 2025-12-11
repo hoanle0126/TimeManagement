@@ -11,20 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('notifications', function (Blueprint $table) {
+        Schema::create('messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('type'); // friend_request, friend_request_accepted, task, etc.
-            $table->string('title');
+            $table->foreignId('conversation_id')->constrained('conversations')->onDelete('cascade');
+            $table->foreignId('sender_id')->constrained('users')->onDelete('cascade');
             $table->text('message');
-            $table->json('data')->nullable(); // Lưu thông tin bổ sung (friendship_id, from_user, etc.)
             $table->boolean('read')->default(false);
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 
             // Index để query nhanh
-            $table->index(['user_id', 'read']);
-            $table->index(['user_id', 'created_at']);
+            $table->index(['conversation_id', 'created_at']);
+            $table->index(['sender_id']);
+            $table->index(['conversation_id', 'read']);
         });
     }
 
@@ -33,11 +32,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('notifications');
+        Schema::dropIfExists('messages');
     }
 };
-
-
-
-
 
