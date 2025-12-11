@@ -2,8 +2,19 @@ import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Socket server URL - có thể config trong .env
+// Trên native, cần dùng IP của máy tính thay vì localhost
+const getSocketURL = () => {
+  if (typeof window !== 'undefined') {
+    // Trên web, dùng localhost
+    return 'http://localhost:3001';
+  }
+  // Trên native, dùng IP của máy tính
+  // IP 192.168.0.113 là IP local của máy tính
+  return 'http://192.168.0.113:3001';
+};
+
 const SOCKET_URL = __DEV__ 
-  ? 'http://localhost:3001' 
+  ? getSocketURL()
   : 'https://your-socket-server.com';
 
 class SocketService {

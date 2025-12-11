@@ -1,14 +1,13 @@
-# FLOW - Ứng dụng Quản lý Công việc
+# TaskMaster - Ứng dụng Quản lý Công việc & Giao tiếp
 
 <div align="center">
 
-![FLOW - Master Your Moments](assets/favicon.png)
+![TaskMaster](assets/favicon.png)
 
-**FLOW - Ứng dụng quản lý công việc đa nền tảng với React Native Paper và Laravel**
+**TaskMaster - Ứng dụng quản lý công việc và giao tiếp đa nền tảng**
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.72.6-61DAFB?logo=react)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-49.0.0-000020?logo=expo)](https://expo.dev/)
-[![React Native Paper](https://img.shields.io/badge/React%20Native%20Paper-5.x-6200EE?logo=material-design)](https://callstack.github.io/react-native-paper/)
 [![Laravel](https://img.shields.io/badge/Laravel-10.50-FF2D20?logo=laravel)](https://laravel.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-5.7+-4479A1?logo=mysql)](https://www.mysql.com/)
 
@@ -25,51 +24,75 @@
 - [Cài đặt](#-cài-đặt)
 - [Cấu hình](#-cấu-hình)
 - [Chạy ứng dụng](#-chạy-ứng-dụng)
-- [Theme System](#-theme-system)
 - [Cấu trúc project](#-cấu-trúc-project)
 - [API Endpoints](#-api-endpoints)
-- [Tác giả](#-tác-giả)
-- [License](#-license)
+- [Troubleshooting](#-troubleshooting)
 
 ---
 
 ## 🎯 Giới thiệu
 
-FLOW là ứng dụng quản lý công việc đa nền tảng được xây dựng với React Native (Expo) và React Native Paper cho frontend, Laravel cho backend. Ứng dụng cho phép người dùng quản lý công việc, theo dõi tiến độ, và tổ chức công việc một cách hiệu quả với giao diện Material Design hiện đại.
+TaskMaster là ứng dụng quản lý công việc và giao tiếp đa nền tảng, được xây dựng với React Native (Expo) cho frontend và Laravel cho backend. Ứng dụng cho phép người dùng quản lý công việc, theo dõi tiến độ, giao tiếp với bạn bè, và tổ chức công việc một cách hiệu quả.
 
 ### Đặc điểm nổi bật
 
 - ✅ **Đa nền tảng**: Chạy trên iOS, Android và Web
-- ✅ **Material Design**: Sử dụng React Native Paper với Material Design 3
-- ✅ **Theme System**: Hỗ trợ Light/Dark theme với khả năng tùy biến hoàn toàn
-- ✅ **Responsive Design**: Tự động điều chỉnh giao diện theo kích thước màn hình
-- ✅ **Xác thực người dùng**: Đăng ký, đăng nhập, đăng xuất với Laravel Sanctum
-- ✅ **Quản lý công việc**: Tạo, chỉnh sửa, xóa và theo dõi công việc
-- ✅ **Giao diện hiện đại**: UI/UX được thiết kế đẹp mắt và dễ sử dụng
+- ✅ **Material Design**: Giao diện Material Design 3 với React Native Paper
+- ✅ **Real-time**: Socket.IO cho tin nhắn và thông báo real-time
+- ✅ **Quản lý công việc**: Tạo, chỉnh sửa, xóa tasks với nhiều tính năng
+- ✅ **Giao tiếp**: Nhắn tin real-time giữa bạn bè
+- ✅ **Lịch**: Xem và quản lý công việc theo lịch
+- ✅ **Responsive**: Tự động điều chỉnh cho mobile, tablet, desktop
 
 ---
 
 ## ✨ Tính năng
 
-### Frontend (React Native)
+### 📝 Quản lý Công việc
 
-- 🏠 **Dashboard**: Trang chủ với các widget hiển thị công việc, tiến độ
-- 📝 **Tạo công việc**: Form tạo công việc với ngày bắt đầu, hết hạn, độ ưu tiên
-- 📅 **Lịch**: Xem công việc theo lịch
-- 👥 **Bạn bè**: Quản lý danh sách bạn bè
-- 💬 **Tin nhắn**: Gửi và nhận tin nhắn
-- 👤 **Quản lý người dùng**: Đăng ký, đăng nhập, đăng xuất
-- 🎨 **Responsive**: Tự động điều chỉnh cho mobile, tablet, desktop
-- 🌓 **Theme System**: Hỗ trợ Light/Dark theme với khả năng tùy biến
-- 🎨 **Material Design**: Giao diện Material Design 3 với React Native Paper
+- **Tạo Task**: 
+  - Task nhanh (Quick Task) với deadline và tags
+  - Task chi tiết (Detailed Task) với subtasks, progress, category
+  - Hỗ trợ AI để phân tích và đề xuất priority, category
+- **Quản lý Task**:
+  - Xem danh sách tasks với filter (tất cả, chờ xử lý, đang làm, hoàn thành)
+  - Tìm kiếm tasks
+  - Chỉnh sửa và xóa tasks
+  - Gán tasks cho người dùng khác
+- **Theo dõi tiến độ**:
+  - Progress bar cho detailed tasks
+  - Widget hiển thị tiến độ hoàn thành theo tuần
+  - Timeline widget hiển thị tasks theo thời gian
 
-### Backend (Laravel)
+### 💬 Giao tiếp
 
-- 🔐 **Authentication API**: Đăng ký, đăng nhập, đăng xuất
-- 🔑 **Laravel Sanctum**: Xác thực API với token
-- 📊 **Database**: MySQL với migrations tự động
-- 🛡️ **CORS**: Cấu hình CORS cho React Native
-- 📝 **RESTful API**: API chuẩn REST
+- **Tin nhắn Real-time**:
+  - Nhắn tin với bạn bè
+  - Socket.IO cho real-time messaging
+  - Hiển thị trạng thái online/offline
+  - Đếm tin nhắn chưa đọc
+- **Quản lý bạn bè**:
+  - Tìm kiếm và kết bạn
+  - Gửi/nhận lời mời kết bạn
+  - Xem danh sách bạn bè
+
+### 📅 Lịch
+
+- **Calendar Widget**:
+  - Hiển thị lịch với react-native-calendars
+  - Đánh dấu ngày có tasks
+  - Chọn ngày để xem tasks
+- **Calendar Screen**:
+  - Lịch đầy đủ với sidebar
+  - Mini calendar để điều hướng
+  - Hiển thị events/tasks trên lịch
+
+### 🎨 Giao diện
+
+- **Material Design 3**: Giao diện hiện đại với React Native Paper
+- **Responsive**: Tự động điều chỉnh cho mobile, tablet, desktop
+- **Theme System**: Hỗ trợ Light/Dark theme
+- **Widgets**: Dashboard với nhiều widget hữu ích
 
 ---
 
@@ -79,18 +102,20 @@ FLOW là ứng dụng quản lý công việc đa nền tảng được xây d�
 
 - **React Native** 0.72.6 - Framework đa nền tảng
 - **Expo** ~49.0.0 - Development platform
-- **React Native Paper** 5.x - Material Design component library
+- **React Native Paper** 5.14.5 - Material Design component library
 - **React Navigation** - Điều hướng trong app
-- **Axios** - HTTP client cho API calls
-- **AsyncStorage** - Lưu trữ local (token, user data)
-- **DateTimePicker** - Chọn ngày/giờ
-- **React Native Vector Icons** - Icon library
+- **Redux Toolkit** - State management
+- **Axios** - HTTP client
+- **Socket.IO Client** - Real-time communication
+- **React Native Calendars** - Calendar component
+- **AsyncStorage** - Local storage
 
 ### Backend
 
 - **Laravel** 10.50 - PHP framework
 - **Laravel Sanctum** - API authentication
 - **MySQL** - Database
+- **Socket.IO Server** - Real-time server (Node.js)
 - **PHP** >= 8.1
 
 ---
@@ -101,14 +126,14 @@ FLOW là ứng dụng quản lý công việc đa nền tảng được xây d�
 
 - Node.js >= 16.x
 - npm hoặc yarn
-- Expo CLI (tự động cài với npm install)
+- Expo CLI
 
 ### Backend
 
 - PHP >= 8.1
 - Composer
 - MySQL >= 5.7 hoặc MariaDB >= 10.3
-- Extension PHP: pdo_mysql, mbstring, openssl, json
+- Node.js (cho Socket.IO server)
 
 ---
 
@@ -126,9 +151,6 @@ cd TaskManagement
 ```bash
 # Cài đặt dependencies
 npm install
-
-# Hoặc sử dụng yarn
-yarn install
 ```
 
 ### 3. Cài đặt Backend
@@ -136,7 +158,7 @@ yarn install
 ```bash
 cd backend
 
-# Cài đặt dependencies
+# Cài đặt PHP dependencies
 composer install
 
 # Tạo file .env
@@ -144,6 +166,15 @@ cp .env.example .env
 
 # Tạo APP_KEY
 php artisan key:generate
+```
+
+### 4. Cài đặt Socket.IO Server
+
+```bash
+cd backend/socket-server
+
+# Cài đặt dependencies
+npm install
 ```
 
 ---
@@ -154,20 +185,9 @@ php artisan key:generate
 
 1. **Tạo file `.env`** trong thư mục gốc:
 
-```bash
-cp .env.example .env
-```
-
-2. **Cấu hình API URL** trong file `.env`:
-
 ```env
 REACT_APP_API_URL=http://localhost:8000/api
 ```
-
-**Lưu ý**: 
-- Development: `http://localhost:8000/api`
-- Production: Thay đổi theo server của bạn
-- File `.env` đã được thêm vào `.gitignore` để bảo mật
 
 ### Backend
 
@@ -182,16 +202,18 @@ DB_USERNAME=root
 DB_PASSWORD=your_password
 ```
 
-2. **Tạo database và chạy migrations**:
+2. **Cấu hình Socket.IO** trong `backend/.env`:
+
+```env
+SOCKET_SERVER_URL=http://localhost:3001
+```
+
+3. **Chạy migrations**:
 
 ```bash
 cd backend
-
-# Database sẽ được tự động tạo khi chạy migrate
 php artisan migrate
 ```
-
-**Lưu ý**: Laravel sẽ tự động tạo database nếu chưa tồn tại (đã được cấu hình sẵn).
 
 ---
 
@@ -199,21 +221,33 @@ php artisan migrate
 
 ### Frontend
 
+**Chạy với Expo Go trên điện thoại thật (KHÔNG CẦN Android SDK):**
+
 ```bash
 # Khởi động Expo development server
 npm start
 
-# Hoặc chạy trên platform cụ thể
-npm run android    # Android
-npm run ios        # iOS
-npm run web        # Web browser
+# Sau khi chạy, bạn sẽ thấy menu với các tùy chọn:
+# - Quét QR code bằng Expo Go app trên điện thoại (KHÔNG CẦN Android SDK)
+# - Nhấn 'w' để mở trên web browser
+# - KHÔNG nhấn 'a' (sẽ cố kết nối Android emulator và cần Android SDK)
 ```
 
-Sau khi chạy `npm start`, bạn có thể:
-- Nhấn `w` để mở trên web
-- Nhấn `a` để mở trên Android emulator
-- Nhấn `i` để mở trên iOS simulator
-- Quét QR code để mở trên thiết bị thật (Expo Go app)
+**Hoặc chạy trực tiếp trên platform cụ thể:**
+
+```bash
+npm run web        # Web browser
+npm run start:tunnel  # Expo với tunnel mode (tốt cho Expo Go)
+npm run android    # Android emulator (CẦN Android SDK - không dùng nếu chỉ dùng Expo Go)
+npm run ios        # iOS simulator (chỉ macOS)
+```
+
+**Lưu ý quan trọng**: 
+- **Với Expo Go (WiFi/QR code)**: Chỉ cần `npm start` và quét QR code → **KHÔNG CẦN Android SDK**
+- **Với Android qua USB**: Cần Android SDK Platform Tools (nhẹ, không cần Android Studio) → Xem hướng dẫn ở phần Troubleshooting
+- **Với Android emulator**: Cần Android Studio và cấu hình ANDROID_HOME
+- **Với iOS simulator**: Cần macOS và Xcode
+- **Web**: Cách nhanh nhất để test mà không cần cài đặt thêm
 
 ### Backend
 
@@ -226,84 +260,19 @@ php artisan serve
 
 Server sẽ chạy tại: **http://localhost:8000**
 
----
+### Socket.IO Server
 
-## 🎨 Theme System
+```bash
+cd backend/socket-server
 
-FLOW sử dụng React Native Paper với hệ thống theme tùy biến hoàn toàn. Tất cả components và screens đều sử dụng theme colors thay vì hardcode values.
+# Development
+npm run dev
 
-### Cấu trúc Theme
-
-Theme được định nghĩa trong `contexts/ThemeContext.js` với các tính năng:
-
-- **Light Theme**: Theme sáng mặc định
-- **Dark Theme**: Theme tối (tự động theo system preference)
-- **Custom Colors**: Primary, Secondary, Success, Warning, Error, Info
-- **Custom Fonts**: Typography system với Material Design 3
-- **Roundness**: Border radius tùy biến
-
-### Sử dụng Theme
-
-```javascript
-import { useTheme } from 'react-native-paper';
-
-function MyComponent() {
-  const theme = useTheme();
-  
-  return (
-    <View style={{ backgroundColor: theme.colors.primary }}>
-      <Text style={{ color: theme.colors.onPrimary }}>
-        Hello World
-      </Text>
-    </View>
-  );
-}
+# Production
+npm start
 ```
 
-### Tùy biến Theme
-
-Để tùy biến theme, chỉnh sửa file `contexts/ThemeContext.js`:
-
-```javascript
-const lightColors = {
-  primary: '#4CAF50',      // Màu chính
-  secondary: '#FF9800',    // Màu phụ
-  success: '#4CAF50',      // Màu thành công
-  warning: '#FF9800',      // Màu cảnh báo
-  error: '#FF3B30',        // Màu lỗi
-  // ... các màu khác
-};
-```
-
-### Toggle Theme
-
-Theme tự động chuyển đổi giữa Light và Dark dựa trên system preference. Bạn có thể thêm nút toggle theme trong settings:
-
-```javascript
-import { useTheme } from '../contexts/ThemeContext';
-
-function SettingsScreen() {
-  const { toggleTheme, isDark } = useTheme();
-  
-  return (
-    <Button onPress={toggleTheme}>
-      {isDark ? 'Light Mode' : 'Dark Mode'}
-    </Button>
-  );
-}
-```
-
-### Components sử dụng Theme
-
-Tất cả components đã được refactor để sử dụng theme:
-- ✅ Header
-- ✅ UserMenuPopup
-- ✅ TodayTasksWidget
-- ✅ TaskProgressWidget
-- ✅ CalendarWidget
-- ✅ TaskTimelineWidget
-- ✅ DateTimePickerModal
-- ✅ Tất cả Screens
+Server sẽ chạy tại: **http://localhost:3001**
 
 ---
 
@@ -311,48 +280,46 @@ Tất cả components đã được refactor để sử dụng theme:
 
 ```
 TaskManagement/
-├── assets/                 # Hình ảnh, icons, favicon
-├── components/             # React Native Paper components
+├── assets/                 # Hình ảnh, icons
+├── components/             # React components
 │   ├── CalendarWidget.js
+│   ├── CalendarSidebar.js
 │   ├── DateTimePickerModal.js
 │   ├── Header.js
+│   ├── NotificationPopup.js
 │   ├── TaskProgressWidget.js
-│   ├── TaskTimelineWidget.js
 │   ├── TodayTasksWidget.js
-│   └── UserMenuPopup.js
-├── contexts/               # React Context
-│   ├── AuthContext.js     # Authentication context
-│   └── ThemeContext.js     # Theme context với React Native Paper
-├── screens/                # Các màn hình của app
+│   └── ...
+├── contexts/              # React Context
+│   ├── AuthContext.js
+│   └── ThemeContext.js
+├── screens/                # Các màn hình
 │   ├── DashboardScreen.js
 │   ├── CreateTaskScreen.js
-│   ├── LoginScreen.js
-│   ├── RegisterScreen.js
+│   ├── MyTasksScreen.js
 │   ├── CalendarScreen.js
 │   ├── MessagesScreen.js
 │   ├── FriendsScreen.js
-│   ├── MyTasksScreen.js
-│   └── TaskDetailScreen.js
+│   └── ...
+├── store/                  # Redux store
+│   ├── slices/
+│   │   ├── authSlice.js
+│   │   ├── tasksSlice.js
+│   │   ├── messagesSlice.js
+│   │   ├── friendsSlice.js
+│   │   └── ...
+│   └── store.js
+├── services/               # Services
+│   ├── api.js
+│   └── socket.js
 ├── backend/                # Laravel backend
 │   ├── app/
-│   │   ├── Http/
-│   │   │   ├── Controllers/
-│   │   │   │   └── AuthController.php
-│   │   │   └── Middleware/
+│   │   ├── Http/Controllers/
 │   │   ├── Models/
-│   │   │   └── User.php
-│   │   └── Providers/
-│   ├── config/
-│   ├── database/
-│   │   └── migrations/
-│   ├── routes/
-│   │   └── api.php
-│   └── ...
-├── App.js                  # Entry point với ThemeProvider
-├── config.js               # App configuration
-├── metro.config.js         # Metro bundler config
-├── babel.config.js         # Babel config
-├── package.json
+│   │   └── Services/
+│   ├── database/migrations/
+│   ├── routes/api.php
+│   └── socket-server/      # Socket.IO server
 └── README.md
 ```
 
@@ -362,110 +329,250 @@ TaskManagement/
 
 ### Authentication
 
-#### Đăng ký
-```
-POST /api/auth/register
-Content-Type: application/json
+- `POST /api/auth/register` - Đăng ký
+- `POST /api/auth/login` - Đăng nhập
+- `POST /api/auth/logout` - Đăng xuất
+- `GET /api/auth/me` - Lấy thông tin user
 
-{
-  "name": "Tên người dùng",
-  "email": "email@example.com",
-  "password": "password",
-  "password_confirmation": "password"
-}
-```
+### Tasks
 
-#### Đăng nhập
-```
-POST /api/auth/login
-Content-Type: application/json
+- `GET /api/tasks` - Lấy danh sách tasks (có filter, search, pagination)
+- `POST /api/tasks` - Tạo task mới
+- `GET /api/tasks/{id}` - Lấy chi tiết task
+- `PUT /api/tasks/{id}` - Cập nhật task
+- `DELETE /api/tasks/{id}` - Xóa task
 
-{
-  "email": "email@example.com",
-  "password": "password"
-}
+### Friends
 
-Response:
-{
-  "token": "sanctum_token_here",
-  "user": {
-    "id": 1,
-    "name": "Tên người dùng",
-    "email": "email@example.com"
-  }
-}
-```
+- `GET /api/friends` - Lấy danh sách bạn bè
+- `GET /api/friends/search` - Tìm kiếm users
+- `POST /api/friends/requests` - Gửi lời mời kết bạn
+- `GET /api/friends/requests` - Lấy danh sách lời mời
+- `POST /api/friends/requests/{id}/accept` - Chấp nhận lời mời
+- `POST /api/friends/requests/{id}/reject` - Từ chối lời mời
+- `DELETE /api/friends/{id}` - Hủy kết bạn
 
-#### Đăng xuất
-```
-POST /api/auth/logout
-Authorization: Bearer {token}
-```
+### Messages
 
-#### Lấy thông tin user hiện tại
-```
-GET /api/auth/me
-Authorization: Bearer {token}
+- `GET /api/messages/conversations` - Lấy danh sách conversations
+- `POST /api/messages/conversations` - Tạo conversation mới
+- `GET /api/messages/conversations/{id}/messages` - Lấy messages
+- `POST /api/messages` - Gửi tin nhắn
 
-Response:
-{
-  "user": {
-    "id": 1,
-    "name": "Tên người dùng",
-    "email": "email@example.com",
-    "avatar": null
-  }
-}
-```
+### Notifications
+
+- `GET /api/notifications` - Lấy danh sách notifications
+- `GET /api/notifications/unread-count` - Đếm notifications chưa đọc
+- `POST /api/notifications/{id}/read` - Đánh dấu đã đọc
+- `POST /api/notifications/mark-all-read` - Đánh dấu tất cả đã đọc
+- `DELETE /api/notifications/{id}` - Xóa notification
+
+### AI (Optional)
+
+- `POST /api/ai/parse-task` - Phân tích task từ text
+- `POST /api/ai/suggest-priority` - Đề xuất priority
+- `POST /api/ai/categorize-tag` - Phân loại và gợi ý tags
+- `POST /api/ai/breakdown-task` - Chia nhỏ task thành subtasks
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Lỗi "Unable to resolve FormData"
+### Lỗi Android SDK
 
-Nếu gặp lỗi này khi chạy trên web:
+Nếu gặp lỗi "Failed to resolve the Android SDK path" hoặc "'adb' is not recognized":
+
+**⚠️ QUAN TRỌNG: Với Expo Go (WiFi/QR code), bạn KHÔNG CẦN Android SDK!**
+
+**Nhưng nếu muốn kết nối qua USB, bạn CẦN Android SDK Platform Tools (nhẹ, không cần Android Studio).**
+
+**Giải pháp đúng cho Expo Go:**
+
+1. **Chạy đúng cách:**
+   ```bash
+   npm start
+   # HOẶC
+   npm run start:tunnel
+   ```
+
+2. **KHÔNG chạy:**
+   ```bash
+   npm run android  # ❌ Sẽ cố kết nối emulator và cần Android SDK
+   ```
+
+3. **Trong menu Expo, KHÔNG nhấn phím 'a'** (sẽ cố kết nối emulator)
+
+4. **Chỉ quét QR code** bằng Expo Go app trên điện thoại
+
+**Kết nối Android qua USB (thiết bị thật, không cần emulator):**
+
+**Cách 1: Cài đặt chỉ Android SDK Platform Tools (Nhẹ, không cần Android Studio)**
+
+1. **Tải Android SDK Platform Tools:**
+   - Tải từ: https://developer.android.com/tools/releases/platform-tools
+   - Giải nén vào thư mục, ví dụ: `C:\platform-tools`
+
+2. **Cấu hình Environment Variables:**
+   - Mở **System Properties** → **Environment Variables**
+   - Thêm biến mới:
+     - **Variable name**: `ANDROID_HOME`
+     - **Variable value**: `C:\platform-tools` (hoặc đường dẫn bạn đã giải nén)
+   - Thêm vào **PATH**: `%ANDROID_HOME%`
+   - **Khởi động lại terminal/CMD**
+
+3. **Bật USB Debugging trên điện thoại:**
+   - Vào **Settings** → **About phone**
+   - Nhấn 7 lần vào **Build number** để bật Developer options
+   - Vào **Settings** → **Developer options**
+   - Bật **USB debugging**
+   - Kết nối điện thoại với máy tính qua USB
+   - Chấp nhận "Allow USB debugging" trên điện thoại
+
+4. **Kiểm tra kết nối:**
+   ```bash
+   adb devices
+   ```
+   Nếu thấy thiết bị hiển thị, bạn đã kết nối thành công!
+
+5. **Chạy app:**
+   ```bash
+   npm run android
+   ```
+   Hoặc:
+   ```bash
+   expo start --android
+   ```
+
+**Cách 2: Cài đặt Android Studio (Nếu muốn dùng emulator)**
+
+1. Tải và cài đặt [Android Studio](https://developer.android.com/studio)
+2. Mở Android Studio → More Actions → SDK Manager
+3. Cài đặt Android SDK (API level 33+)
+4. Set environment variables:
+   - `ANDROID_HOME`: `C:\Users\<YourUsername>\AppData\Local\Android\Sdk`
+   - Thêm vào PATH: `%ANDROID_HOME%\platform-tools` và `%ANDROID_HOME%\tools`
+
+**Cách 2: Chạy trên Web thay vì Android**
+
+```bash
+# Chạy trên web browser thay vì Android
+npm run web
+```
+
+**Cách 3: Sử dụng Expo Go trên thiết bị thật (KHÔNG CẦN Android SDK)**
+
+1. Cài đặt Expo Go app trên điện thoại Android (từ Google Play Store)
+2. Chạy `npm start` (KHÔNG chạy `npm run android`)
+3. Quét QR code từ terminal bằng Expo Go app
+4. **Lưu ý**: KHÔNG nhấn phím 'a' trong menu Expo (sẽ cố kết nối emulator và cần Android SDK)
+
+**Lưu ý quan trọng khi dùng Expo Go:**
+
+- Đảm bảo điện thoại và máy tính **cùng mạng WiFi**
+- Nếu gặp lỗi "Failed to download remote update", thử các cách sau:
+
+  **a) Dùng Tunnel Mode (Khuyến nghị - dễ nhất):**
+  ```bash
+  npm start
+  # Sau đó nhấn 's' để switch connection type, chọn 'tunnel'
+  # Hoặc chạy trực tiếp:
+  npx expo start --tunnel
+  ```
+
+  **b) Dùng LAN Mode với IP thủ công:**
+  ```bash
+  # 1. Tìm IP của máy tính:
+  # Windows: ipconfig (tìm IPv4 Address)
+  # Mac/Linux: ifconfig hoặc ip addr
+  
+  # 2. Tạo file .env và thêm:
+  REACT_APP_API_URL=http://YOUR_IP:8000/api
+  # Ví dụ: REACT_APP_API_URL=http://192.168.1.100:8000/api
+  
+  # 3. Chạy lại:
+  npm start -- --clear
+  ```
+
+  **c) Kiểm tra Firewall:**
+  - Cho phép Node.js và Expo qua Windows Firewall
+  - Đảm bảo port 8081 (Metro), 8000 (Laravel), 3001 (Socket.IO) không bị chặn
+
+### Lỗi kết nối API
+
+1. Kiểm tra backend server đang chạy (`php artisan serve`)
+2. Kiểm tra `REACT_APP_API_URL` trong `.env`
+3. Kiểm tra CORS configuration trong `backend/config/cors.php`
+
+### Lỗi Socket.IO
+
+1. Kiểm tra Socket.IO server đang chạy
+2. Kiểm tra `SOCKET_SERVER_URL` trong `backend/.env`
+3. Kiểm tra firewall/port 3001
+
+### Lỗi database
+
+1. Kiểm tra MySQL đang chạy
+2. Kiểm tra thông tin database trong `backend/.env`
+3. Chạy lại migrations: `php artisan migrate:fresh`
+
+### Lỗi Metro bundler
 
 ```bash
 # Xóa cache và khởi động lại
 npm start -- --clear
 ```
 
-### Lỗi kết nối database
+### Lỗi "Failed to download remote update" trên Expo Go
 
-1. Kiểm tra MySQL đang chạy
-2. Kiểm tra thông tin database trong `backend/.env`
-3. Đảm bảo user MySQL có quyền CREATE DATABASE
+**Nguyên nhân:** Expo Go không thể tải bundle từ Metro bundler
 
-### Lỗi CORS
+**Giải pháp:**
 
-Backend đã được cấu hình CORS để cho phép requests từ frontend. Nếu vẫn gặp lỗi, kiểm tra file `backend/config/cors.php`.
+1. **Dùng Tunnel Mode (Dễ nhất):**
+   ```bash
+   npx expo start --tunnel
+   ```
+   Tunnel mode sẽ tạo kết nối qua internet, không cần cùng mạng WiFi.
 
-### Lỗi Theme không hoạt động
+2. **Kiểm tra kết nối mạng:**
+   - Đảm bảo điện thoại và máy tính cùng mạng WiFi
+   - Tắt VPN nếu đang bật
+   - Kiểm tra firewall không chặn port 8081
 
-1. Đảm bảo `ThemeProvider` đã được wrap trong `App.js`
-2. Kiểm tra `PaperProvider` đã được import và sử dụng
-3. Đảm bảo tất cả components sử dụng `useTheme()` hook
+3. **Xóa cache và thử lại:**
+   ```bash
+   npm start -- --clear
+   ```
+
+4. **Cập nhật Expo Go app:**
+   - Đảm bảo Expo Go app đã được cập nhật lên phiên bản mới nhất
+
+5. **Kiểm tra IP và cấu hình:**
+   - Nếu dùng LAN mode, cần cấu hình IP trong file `.env`
+   - Xem hướng dẫn ở phần "Cách 3: Sử dụng Expo Go" ở trên
+
+### Kiểm tra cấu hình Android USB
+
+Sau khi cài đặt Android SDK Platform Tools, kiểm tra cấu hình:
+
+```bash
+npm run check-android
+```
+
+Script này sẽ:
+- Kiểm tra xem `adb` đã được cài đặt chưa
+- Kiểm tra thiết bị Android đã kết nối qua USB chưa
+- Hướng dẫn cài đặt nếu chưa có
 
 ---
 
 ## 📚 Tài liệu tham khảo
 
-- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [React Native Documentation](https://reactnative.dev/)
 - [Expo Documentation](https://docs.expo.dev/)
-- [React Native Paper Documentation](https://callstack.github.io/react-native-paper/)
-- [Material Design 3](https://m3.material.io/)
+- [React Native Paper](https://callstack.github.io/react-native-paper/)
 - [Laravel Documentation](https://laravel.com/docs)
-- [Laravel Sanctum](https://laravel.com/docs/sanctum)
-
----
-
-## 👤 Tác giả
-
-**Lê Văn Xuân Hoàn**
-
-- Email: [your-email@example.com]
-- GitHub: [@yourusername]
+- [Socket.IO Documentation](https://socket.io/docs/)
 
 ---
 
@@ -475,22 +582,10 @@ This project is licensed under the MIT License.
 
 ---
 
-## 🙏 Lời cảm ơn
-
-Cảm ơn các thư viện và framework mã nguồn mở đã giúp xây dựng project này:
-- React Native team
-- Expo team
-- React Native Paper team (Callstack)
-- Material Design team
-- Laravel team
-- Tất cả các contributors của các packages được sử dụng
-
----
-
 <div align="center">
 
-**Made with ❤️ by Lê Văn Xuân Hoàn**
+**Made with ❤️**
 
-⭐ Star this repo nếu bạn thấy hữu ích!
+⭐ Star this repo if you find it useful!
 
 </div>
