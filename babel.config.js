@@ -1,5 +1,7 @@
 module.exports = function(api) {
-  api.cache(true);
+  // Use 'false' for development to enable Fast Refresh
+  // Use 'true' for production builds
+  api.cache(false);
   return {
     presets: ['babel-preset-expo'],
     plugins: [

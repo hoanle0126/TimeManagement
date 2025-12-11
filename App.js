@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { loadUser } from './store/slices/authSlice';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { createShadow } from './utils/shadow';
+import socketService from './services/socket';
 
 import DashboardScreen from './screens/DashboardScreen';
 import MessagesScreen from './screens/MessagesScreen';
@@ -23,6 +24,7 @@ import FriendsScreen from './screens/FriendsScreen';
 import TaskDetailScreen from './screens/TaskDetailScreen';
 import MyTasksScreen from './screens/MyTasksScreen';
 import CreateTaskScreen from './screens/CreateTaskScreen';
+import SearchUsersScreen from './screens/SearchUsersScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 
@@ -120,7 +122,7 @@ function AuthStack() {
 
 function AppContent() {
   const dispatch = useAppDispatch();
-  const { token, isLoading } = useAppSelector((state) => state.auth);
+  const { token, user, isLoading } = useAppSelector((state) => state.auth);
   const theme = usePaperTheme();
 
   React.useEffect(() => {
@@ -128,9 +130,39 @@ function AppContent() {
     dispatch(loadUser());
   }, [dispatch]);
 
+  // Kết nối socket khi user đăng nhập
+  React.useEffect(() => {
+    if (user && token) {
+      // Kết nối socket với user info
+      socketService.connect(user.id, {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+      }).catch((error) => {
+        console.error('Failed to connect socket:', error);
+      });
+    } else {
+      // Ngắt kết nối socket khi logout
+      socketService.disconnect();
+    }
+
+    return () => {
+      // Cleanup khi component unmount
+      if (!user || !token) {
+        socketService.disconnect();
+      }
+    };
+  }, [user, token]);
+
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+      }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -145,6 +177,7 @@ function AppContent() {
           <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
           <Stack.Screen name="MyTasks" component={MyTasksScreen} />
           <Stack.Screen name="CreateTask" component={CreateTaskScreen} />
+          <Stack.Screen name="SearchUsers" component={SearchUsersScreen} />
         </>
       ) : (
         // User is not logged in
@@ -195,11 +228,4 @@ export default function App() {
   );
 }
 
-const styles = {
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-};
 

@@ -1,181 +1,144 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
-import { Card, Text, IconButton, Chip, useTheme } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
-import { createShadow } from '../utils/shadow';
+import React, { useState, useMemo } from "react";
+import { View, Dimensions, Text } from "react-native";
+import { Card, useTheme } from "react-native-paper";
+import { Calendar, LocaleConfig } from "react-native-calendars";
+import { createShadow } from "../utils/shadow";
+import { useAppSelector } from "../store/hooks";
+import mockTasksData from "../data/mockTasks.json";
 
-const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+// Cấu hình locale cho tiếng Việt
+LocaleConfig.locales['vi'] = {
+  monthNames: [
+    'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+    'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+  ],
+  monthNamesShort: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
+  dayNames: ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'],
+  dayNamesShort: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+  today: 'Hôm nay'
+};
+LocaleConfig.defaultLocale = 'vi';
+
+// Flag để bật/tắt mock data (true = dùng mock JSON, false = dùng data từ Redux)
+const USE_MOCK_DATA = false;
+
 const months = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  "Tháng 1",
+  "Tháng 2",
+  "Tháng 3",
+  "Tháng 4",
+  "Tháng 5",
+  "Tháng 6",
+  "Tháng 7",
+  "Tháng 8",
+  "Tháng 9",
+  "Tháng 10",
+  "Tháng 11",
+  "Tháng 12",
 ];
 
-const calendarData = {
-  2: 'success',
-  3: 'success',
-  5: 'success',
-  6: 'success',
-  8: 'success',
-  10: 'primary',
-  14: 'success',
-  16: 'warning',
-  20: 'success',
-  21: 'success',
-  23: 'success',
-  24: 'success',
-  25: 'primary',
-  28: 'success',
-  29: 'success',
-};
-
-export default function CalendarWidget() {
+export default function CalendarWidget({
+  currentDate: propCurrentDate,
+  selectedDate: propSelectedDate,
+  onSelectDate: propOnSelectDate,
+}) {
   const theme = useTheme();
-  const { width } = Dimensions.get('window');
+  const { width } = Dimensions.get("window");
   const isTablet = width >= 768;
-  const [currentMonth] = useState(1);
-  const [currentYear] = useState(2024);
+  const [internalCurrentDate, setInternalCurrentDate] = useState(
+    new Date(2026, 1, 1)
+  ); // Tháng 2 năm 2026
+  const [internalSelectedDate, setInternalSelectedDate] = useState(
+    new Date(2026, 1, 1)
+  ); // Ngày 1 tháng 2
 
-  const getDaysInMonth = (month, year) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
+  // Sử dụng props nếu có, nếu không dùng state nội bộ
+  const currentDate = propCurrentDate || internalCurrentDate;
+  const selectedDate = propSelectedDate || internalSelectedDate;
+  const setSelectedDate = propOnSelectDate || setInternalSelectedDate;
 
-  const getFirstDayOfMonth = (month, year) => {
-    return new Date(year, month, 1).getDay();
-  };
+  // Lấy tasks từ Redux state (chỉ dùng khi USE_MOCK_DATA = false)
+  const { todayTasks, tasks } = useAppSelector((state) => state.tasks);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'success':
-        return theme.colors.success;
-      case 'warning':
-        return theme.colors.warning;
-      case 'primary':
-        return theme.colors.primary;
-      default:
-        return 'transparent';
+  // Kết hợp tất cả tasks: dùng mock data nếu flag bật, nếu không dùng Redux data
+  const allTasks = useMemo(() => {
+    if (USE_MOCK_DATA && mockTasksData && Array.isArray(mockTasksData)) {
+      return mockTasksData;
     }
-  };
+    return [...(todayTasks || []), ...(tasks || [])];
+  }, [todayTasks, tasks]);
 
-  const daysInMonth = getDaysInMonth(currentMonth, currentYear);
-  const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
-  const today = new Date().getDate();
-
-  const renderCalendarDays = () => {
-    const days = [];
+  // Tạo map marked dates từ tasks (key: 'YYYY-MM-DD', value: marked object)
+  const markedDates = useMemo(() => {
+    const marked = {};
     
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<View key={`empty-${i}`} style={styles.dayCell} />);
+    allTasks.forEach((task) => {
+      // Lấy ngày từ due_date hoặc created_at
+      let dateKey = null;
+      if (task.due_date) {
+        const date = new Date(task.due_date);
+        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(date.getDate()).padStart(2, "0")}`;
+      } else if (task.created_at) {
+        const date = new Date(task.created_at);
+        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+
+      if (dateKey) {
+        if (!marked[dateKey]) {
+          marked[dateKey] = {
+            marked: true,
+            dotColor: theme.colors.success || "#4CAF50",
+          };
+        }
+      }
+    });
+
+    // Thêm selected date
+    const selectedDateStr = `${selectedDate.getFullYear()}-${String(
+      selectedDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+    
+    if (marked[selectedDateStr]) {
+      marked[selectedDateStr].selected = true;
+      marked[selectedDateStr].selectedColor = theme.colors.primary;
+    } else {
+      marked[selectedDateStr] = {
+        selected: true,
+        selectedColor: theme.colors.primary,
+      };
     }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const status = calendarData[day];
-      const isToday = day === today;
-      const statusColor = status ? getStatusColor(status) : null;
-      
-      days.push(
-        <View
-          key={day}
-          style={[
-            styles.dayCell,
-            statusColor && {
-              backgroundColor: statusColor,
-              borderRadius: theme.roundness * 1.33,
-            },
-            isToday && !statusColor && {
-              borderWidth: 2,
-              borderColor: theme.colors.primary,
-              borderRadius: theme.roundness * 1.33,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.dayText,
-              statusColor && { color: theme.colors.onPrimary },
-              isToday && !statusColor && { 
-                color: theme.colors.primary,
-                fontWeight: 'bold',
-              },
-            ]}
-          >
-            {day}
-          </Text>
-        </View>
-      );
-    }
+    return marked;
+  }, [allTasks, selectedDate, theme.colors.primary, theme.colors.success]);
 
-    return days;
+  // Format selected date cho Calendar component
+  const selectedDateStr = useMemo(() => {
+    return `${selectedDate.getFullYear()}-${String(
+      selectedDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+  }, [selectedDate]);
+
+  // Format current date cho Calendar component
+  const currentDateStr = useMemo(() => {
+    return `${currentDate.getFullYear()}-${String(
+      currentDate.getMonth() + 1
+    ).padStart(2, "0")}-01`;
+  }, [currentDate]);
+
+  const handleDayPress = (day) => {
+    const newDate = new Date(day.dateString);
+    setSelectedDate(newDate);
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      marginBottom: 16,
-    },
-    card: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: theme.roundness * 1.33,
-    },
-    cardContent: {
-      padding: isTablet ? 20 : 16,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    title: {
-      fontSize: isTablet ? 18 : 16,
-      fontWeight: '600',
-      color: theme.colors.onSurface,
-    },
-    monthSelector: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    monthText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: theme.colors.onSurface,
-    },
-    calendar: {
-      marginTop: 8,
-    },
-    daysOfWeek: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      marginBottom: 8,
-    },
-    dayOfWeekText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.colors.onSurfaceVariant,
-      width: 32,
-      textAlign: 'center',
-    },
-    calendarGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    dayCell: {
-      width: '14.28%',
-      aspectRatio: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 4,
-    },
-    dayText: {
-      fontSize: 14,
-      color: theme.colors.onSurfaceVariant,
-      fontWeight: '500',
-    },
-  });
+  const handleMonthChange = (month) => {
+    // Có thể cập nhật currentDate nếu cần
+  };
 
   const cardShadow = createShadow({
     color: theme.colors.shadow,
@@ -186,33 +149,88 @@ export default function CalendarWidget() {
   });
 
   return (
-    <View style={styles.container}>
-      <Card style={[styles.card, cardShadow]}>
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Ionicons name="calendar" size={20} color={theme.colors.onSurface} />
-              <Text style={styles.title}>Calendar</Text>
-            </View>
-            <View style={styles.monthSelector}>
-              <Text style={styles.monthText}>{months[currentMonth]}</Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.onSurfaceVariant} />
-            </View>
+    <View
+      style={{
+        position: "relative",
+        flex: 1,
+      }}
+    >
+      <Card
+        style={[
+          {
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.roundness * 1.33,
+            borderWidth: 1,
+            borderColor: theme.colors.outline || "#E0E0E0",
+            flex: 1,
+          },
+          cardShadow,
+        ]}
+      >
+        <Card.Content
+          style={{
+            padding: 0,
+            flex: 1,
+          }}
+        >
+          <View
+            style={{
+              padding: 16,
+              paddingBottom: 8,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: isTablet ? 20 : 18,
+                fontWeight: "600",
+                color: theme.colors.onSurface,
+              }}
+            >
+              {months[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </Text>
           </View>
-
-          <View style={styles.calendar}>
-            <View style={styles.daysOfWeek}>
-              {daysOfWeek.map((day, index) => (
-                <Text key={index} style={styles.dayOfWeekText}>
-                  {day}
-                </Text>
-              ))}
-            </View>
-
-            <View style={styles.calendarGrid}>
-              {renderCalendarDays()}
-            </View>
-          </View>
+          <Calendar
+            current={currentDateStr}
+            markedDates={markedDates}
+            onDayPress={handleDayPress}
+            onMonthChange={handleMonthChange}
+            markingType="simple"
+            firstDay={0} // 0 = Chủ nhật
+            hideExtraDays={false}
+            enableSwipeMonths={true}
+            hideArrows={false}
+            style={{
+              flex: 1,
+              borderWidth: 0,
+            }}
+            theme={{
+              backgroundColor: theme.colors.surface,
+              calendarBackground: theme.colors.surface,
+              textSectionTitleColor: theme.colors.onSurfaceVariant,
+              selectedDayBackgroundColor: theme.colors.primary,
+              selectedDayTextColor: "#FFFFFF",
+              todayTextColor: theme.colors.primary,
+              dayTextColor: theme.colors.onSurface,
+              textDisabledColor: theme.colors.onSurfaceVariant,
+              dotColor: theme.colors.success || "#4CAF50",
+              selectedDotColor: "#FFFFFF",
+              arrowColor: theme.colors.primary,
+              monthTextColor: theme.colors.onSurface,
+              textDayFontWeight: "500",
+              textMonthFontWeight: "600",
+              textDayHeaderFontWeight: "600",
+              textDayFontSize: isTablet ? 16 : 14,
+              textMonthFontSize: isTablet ? 20 : 18,
+              textDayHeaderFontSize: isTablet ? 13 : 11,
+              'stylesheet.calendar.header': {
+                week: {
+                  marginTop: 5,
+                  flexDirection: 'row',
+                  justifyContent: 'space-around',
+                }
+              }
+            }}
+          />
         </Card.Content>
       </Card>
     </View>

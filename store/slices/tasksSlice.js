@@ -6,9 +6,23 @@ export const fetchTasks = createAsyncThunk(
   'tasks/fetchTasks',
   async (params = {}, { rejectWithValue }) => {
     try {
+      console.log('[fetchTasks] Starting fetch with params:', params);
       const response = await api.get('/tasks', { params });
-      return response.data.tasks || response.data;
+      console.log('[fetchTasks] Response received:', {
+        status: response.status,
+        data: response.data,
+        tasks: response.data?.tasks,
+        isArray: Array.isArray(response.data?.tasks),
+      });
+      const tasks = response.data?.tasks || response.data || [];
+      console.log('[fetchTasks] Returning tasks:', tasks);
+      return Array.isArray(tasks) ? tasks : [];
     } catch (error) {
+      console.error('[fetchTasks] Error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       return rejectWithValue(error.response?.data || 'Failed to fetch tasks');
     }
   }
@@ -19,13 +33,32 @@ export const fetchTodayTasks = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const today = new Date().toISOString().split('T')[0];
+      console.log('[fetchTodayTasks] Starting fetch for date:', today);
       const response = await api.get('/tasks', {
         params: {
           due_date: today,
         },
       });
-      return response.data.tasks || response.data || [];
+      console.log('[fetchTodayTasks] Response received:', {
+        status: response.status,
+        data: response.data,
+        tasks: response.data?.tasks,
+        isArray: Array.isArray(response.data?.tasks),
+        tasksLength: response.data?.tasks?.length,
+      });
+      // Handle paginated response or direct array
+      const tasks = response.data?.tasks || response.data || [];
+      // Ensure it's an array
+      const result = Array.isArray(tasks) ? tasks : [];
+      console.log('[fetchTodayTasks] Returning tasks:', result);
+      return result;
     } catch (error) {
+      console.error('[fetchTodayTasks] Error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack,
+      });
       return rejectWithValue(error.response?.data || 'Failed to fetch today tasks');
     }
   }
@@ -109,11 +142,18 @@ const tasksSlice = createSlice({
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.tasks = Array.isArray(action.payload) ? action.payload : [];
+        console.log('[fetchTasks.fulfilled] Payload:', action.payload);
+        // Handle both array response and object with tasks property
+        const tasks = Array.isArray(action.payload) 
+          ? action.payload 
+          : (action.payload?.tasks || []);
+        console.log('[fetchTasks.fulfilled] Setting tasks:', tasks);
+        state.tasks = Array.isArray(tasks) ? tasks : [];
         state.error = null;
       })
       .addCase(fetchTasks.rejected, (state, action) => {
         state.isLoading = false;
+        console.error('[fetchTasks.rejected] Error:', action.payload);
         state.error = action.payload;
       });
 
@@ -125,11 +165,18 @@ const tasksSlice = createSlice({
       })
       .addCase(fetchTodayTasks.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.todayTasks = Array.isArray(action.payload) ? action.payload : [];
+        console.log('[fetchTodayTasks.fulfilled] Payload:', action.payload);
+        // Ensure payload is an array
+        const tasks = Array.isArray(action.payload) 
+          ? action.payload 
+          : (action.payload?.tasks || []);
+        console.log('[fetchTodayTasks.fulfilled] Setting todayTasks:', tasks);
+        state.todayTasks = Array.isArray(tasks) ? tasks : [];
         state.error = null;
       })
       .addCase(fetchTodayTasks.rejected, (state, action) => {
         state.isLoading = false;
+        console.error('[fetchTodayTasks.rejected] Error:', action.payload);
         state.error = action.payload;
       });
 
@@ -228,4 +275,5 @@ const tasksSlice = createSlice({
 
 export const { clearError, clearCurrentTask } = tasksSlice.actions;
 export default tasksSlice.reducer;
+
 

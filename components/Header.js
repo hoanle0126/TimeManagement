@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { 
   Text, 
   TextInput, 
@@ -14,11 +14,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../store/hooks';
 import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import UserMenuPopup from './UserMenuPopup';
+import NotificationPopup from './NotificationPopup';
 
 export default function Header({ onMenuPress }) {
   const navigation = useNavigation();
   const theme = useTheme();
   const { token, user } = useAppSelector((state) => state.auth);
+  const { friendRequests } = useAppSelector((state) => state.friends);
+  const { unreadCount } = useAppSelector((state) => state.notifications);
   const { isDark, toggleTheme } = useCustomTheme();
   const isAuthenticated = !!token;
   const userName = user?.name || 'Guest';
@@ -27,6 +30,9 @@ export default function Header({ onMenuPress }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [userPosition, setUserPosition] = useState(null);
   const userProfileRef = useRef(null);
+  const [notificationVisible, setNotificationVisible] = useState(false);
+  const [notificationPosition, setNotificationPosition] = useState(null);
+  const notificationRef = useRef(null);
 
   const handleUserProfilePress = () => {
     if (userProfileRef.current) {
@@ -51,6 +57,31 @@ export default function Header({ onMenuPress }) {
       onMenuPress(itemId);
     } else {
       console.warn('Header: onMenuPress is not defined');
+    }
+  };
+
+  const handleLogoPress = () => {
+    // Navigate về MainTabs và chọn tab Home
+    // Cách này hoạt động trong mọi trường hợp:
+    // - Khi đang ở Stack Screen (MyTasks, TaskDetail, CreateTask)
+    // - Khi đang ở Tab Screen trong MainTabs
+    const rootNav = navigation.getParent() || navigation;
+    rootNav.navigate('MainTabs', { screen: 'Home' });
+  };
+
+  const handleNotificationPress = () => {
+    if (notificationRef.current) {
+      notificationRef.current.measure((x, y, width, height, pageX, pageY) => {
+        setNotificationPosition({
+          x: pageX,
+          y: pageY,
+          width,
+          height,
+        });
+        setNotificationVisible(true);
+      });
+    } else {
+      setNotificationVisible(true);
     }
   };
 
@@ -139,14 +170,18 @@ export default function Header({ onMenuPress }) {
     <>
       <View style={[styles.container, isTablet && styles.containerTablet]}>
         <View style={styles.leftSection}>
-          <View style={styles.logoContainer}>
+          <TouchableOpacity
+            onPress={handleLogoPress}
+            style={styles.logoContainer}
+            activeOpacity={0.7}
+          >
             <View style={styles.logoIcon}>
               <Ionicons name="checkmark" size={20} color={theme.colors.onPrimary} />
             </View>
             <Text style={[styles.logoText, isTablet && styles.logoTextTablet]}>
-              FLOW
+              FLOWs
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {isTablet && (
@@ -185,23 +220,28 @@ export default function Header({ onMenuPress }) {
                 size={20}
                 onPress={() => {}}
               />
-              <View style={styles.iconButtonContainer}>
+              <View 
+                ref={notificationRef}
+                style={styles.iconButtonContainer}
+              >
                 <IconButton
                   icon="bell"
                   iconColor={theme.colors.onSurfaceVariant}
                   size={20}
-                  onPress={() => {}}
+                  onPress={handleNotificationPress}
                 />
-                <Badge 
-                  style={{ 
-                    position: 'absolute', 
-                    top: 4, 
-                    right: 4,
-                    backgroundColor: theme.colors.error,
-                  }}
-                >
-                  6
-                </Badge>
+                {(unreadCount > 0 || false) && (
+                  <Badge 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 4, 
+                      right: 4,
+                      backgroundColor: theme.colors.error,
+                    }}
+                  >
+                    {unreadCount}
+                  </Badge>
+                )}
               </View>
               <IconButton
                 icon="cog"
@@ -269,6 +309,12 @@ export default function Header({ onMenuPress }) {
         onClose={() => setMenuVisible(false)}
         onMenuItemPress={handleMenuItemPress}
         userPosition={userPosition}
+      />
+
+      <NotificationPopup
+        visible={notificationVisible}
+        onClose={() => setNotificationVisible(false)}
+        notificationPosition={notificationPosition}
       />
     </>
   );

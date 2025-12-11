@@ -13,6 +13,9 @@ import {
   Button, 
   useTheme,
   ActivityIndicator,
+  Dialog,
+  Portal,
+  Paragraph,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,14 +38,18 @@ export default function LoginScreen({ navigation }) {
   React.useEffect(() => {
     // Hiển thị lỗi nếu có
     if (error) {
-      Alert.alert('Đăng nhập thất bại', error || 'Vui lòng thử lại');
+      setDialogTitle('Đăng nhập thất bại');
+      setDialogMessage(error || 'Vui lòng thử lại');
+      setDialogVisible(true);
       dispatch(clearError());
     }
   }, [error, dispatch]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      setDialogTitle('Lỗi');
+      setDialogMessage('Vui lòng nhập đầy đủ thông tin');
+      setDialogVisible(true);
       return;
     }
 
